@@ -41,45 +41,46 @@ SUGGESTION_CARDS = [
     ("Holdings & Risk", "Top holdings, risk level, and benchmark.", "What are the top holdings and risk level of HDFC Small Cap Fund?"),
 ]
 
-# Dark theme and layout CSS
+# Light theme and layout CSS
 STYLES = """
 <style>
-/* Force dark app background */
+/* App background */
 .stApp, [data-testid="stAppViewContainer"] {
-    background-color: #020617 !important;
-    color: #e5e7eb;
+    background-color: #F8FAFC !important;
+    color: #0f172a;
 }
 
-/* Sidebar: dark navy, border */
+/* Sidebar */
 section[data-testid="stSidebar"] {
-    background-color: #020617 !important;
-    border-right: 1px solid #1f2937;
+    background-color: #F1F5F9 !important;
+    border-right: 1px solid #E2E8F0;
 }
 section[data-testid="stSidebar"] .stMarkdown,
 section[data-testid="stSidebar"] label,
 section[data-testid="stSidebar"] p {
-    color: #e5e7eb !important;
+    color: #0f172a !important;
 }
 
-/* Fund list in sidebar: vertical list styling */
-.stRadio > div {
-    background: transparent !important;
-    gap: 0.25rem;
+/* Fund list: clickable buttons, reduced padding, highlight selected (primary = green) */
+section[data-testid="stSidebar"] button {
+    margin-bottom: 2px !important;
+    padding: 0.4rem 0.75rem !important;
+    text-align: left !important;
+    border-radius: 8px;
+    border: 1px solid #E2E8F0;
 }
-.stRadio label {
-    background: #0f172a !important;
-    border: 1px solid #1f2937;
-    border-radius: 12px;
-    padding: 0.75rem 1rem !important;
-    color: #e5e7eb !important;
+section[data-testid="stSidebar"] button[kind="secondary"] {
+    background: #FFFFFF !important;
+    color: #0f172a !important;
 }
-.stRadio label:hover {
-    border-color: #22c55e;
-    background: #0b1120 !important;
+section[data-testid="stSidebar"] button[kind="secondary"]:hover {
+    border-color: #84CC16;
+    background: #F8FAFC !important;
 }
-.stRadio label[data-checked="true"] {
-    border-color: #22c55e;
-    background: #0b1120 !important;
+section[data-testid="stSidebar"] button[kind="primary"] {
+    background: #84CC16 !important;
+    color: #0f172a !important;
+    border-color: #65a30d;
 }
 
 /* Main content spacing */
@@ -89,12 +90,7 @@ section[data-testid="stSidebar"] p {
     max-width: 900px;
 }
 
-/* Header area */
-.main-header {
-    margin-bottom: 1.5rem;
-}
-
-/* Starter cards: equal width, equal height, one row, rounded, border */
+/* Starter cards: white, border, rounded */
 .suggestion-card {
     height: 100%;
     min-height: 120px;
@@ -104,69 +100,83 @@ section[data-testid="stSidebar"] p {
     height: 100%;
     min-height: 120px;
     text-align: left;
-    background: #0f172a !important;
+    background: #FFFFFF !important;
     border-radius: 16px;
-    border: 1px solid #1f2937;
+    border: 1px solid #E2E8F0;
     padding: 1rem;
     box-shadow: none;
-    color: #e5e7eb !important;
+    color: #0f172a !important;
 }
 .suggestion-card button:hover {
-    background: #0b1120 !important;
-    border-color: #22c55e;
-    color: #e5e7eb !important;
+    background: #F8FAFC !important;
+    border-color: #84CC16;
+    color: #0f172a !important;
 }
 
-/* Chat message bubbles */
-div[data-testid="stChatMessageContent"] {
-    background: #0f172a;
+/* User message: green, right aligned (odd-indexed messages) */
+div[data-testid="stChatMessage"]:nth-of-type(odd) {
+    margin-left: auto;
+    max-width: 85%;
+}
+div[data-testid="stChatMessage"]:nth-of-type(odd) div[data-testid="stChatMessageContent"] {
+    background: #84CC16 !important;
+    color: #0f172a !important;
     border-radius: 18px;
     padding: 0.75rem 1rem;
-    border: 1px solid #1f2937;
+    border: 1px solid #65a30d;
 }
 
-/* Chat input: dark background, fixed at bottom feel */
+/* Assistant message: light grey, left aligned (even-indexed messages) */
+div[data-testid="stChatMessage"]:nth-of-type(even) div[data-testid="stChatMessageContent"] {
+    background: #F1F5F9 !important;
+    color: #0f172a !important;
+    border-radius: 18px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #E2E8F0;
+}
+
+/* Chat input: fixed at bottom, light theme */
 div[data-testid="stChatInput"] {
-    border-top: 1px solid #1f2937;
-    background: #020617 !important;
+    border-top: 1px solid #E2E8F0;
+    background: #F8FAFC !important;
 }
 div[data-testid="stChatInput"] textarea {
-    background: #0f172a !important;
-    color: #e5e7eb !important;
-    border: 1px solid #1f2937;
+    background: #FFFFFF !important;
+    color: #0f172a !important;
+    border: 1px solid #E2E8F0;
     border-radius: 12px;
 }
 
-/* Green send button */
-button[kind="primary"], div[data-testid="stChatInput"] button {
-    background: #22c55e !important;
-    color: #020617 !important;
+/* Primary green send button */
+button[kind="primary"], div[data-testid="stChatInput"] button[kind="primary"] {
+    background: #84CC16 !important;
+    color: #0f172a !important;
     border: none !important;
     border-radius: 12px;
 }
 button[kind="primary"]:hover, div[data-testid="stChatInput"] button:hover {
-    background: #16a34a !important;
-    color: #020617 !important;
+    background: #65a30d !important;
+    color: #0f172a !important;
 }
 
-/* Reset Chat: only after first message */
+/* Reset Chat button */
 .reset-button button {
     border-radius: 9999px;
-    border: 1px solid #4b5563;
-    background: #0f172a !important;
-    color: #e5e7eb !important;
+    border: 1px solid #E2E8F0;
+    background: #FFFFFF !important;
+    color: #0f172a !important;
 }
 .reset-button button:hover {
-    border-color: #22c55e;
-    color: #bbf7d0 !important;
+    border-color: #84CC16;
+    color: #0f172a !important;
 }
 
 /* Disclaimer below input */
 .disclaimer {
     margin-top: 0.75rem;
     padding-top: 0.75rem;
-    border-top: 1px solid #1f2937;
-    color: #9ca3af;
+    border-top: 1px solid #E2E8F0;
+    color: #64748b;
     font-size: 0.875rem;
 }
 
@@ -175,51 +185,50 @@ button[kind="primary"]:hover, div[data-testid="stChatInput"] button:hover {
     text-align: center;
     margin: 2rem 0;
 }
-.welcome-section h2 {
-    color: #e5e7eb;
+.welcome-section h2, .welcome-section h4 {
+    color: #0f172a;
     margin-bottom: 0.5rem;
 }
 .welcome-section p {
-    color: #9ca3af;
+    color: #475569;
     margin-bottom: 1.5rem;
 }
 </style>
 """
 
 
-def run_chat(prompt: str, selected_fund_id: str | None) -> None:
-    """Process a user prompt through RAG + Groq and append to messages."""
+def append_user_then_pending(prompt: str, selected_fund_id: str | None) -> None:
+    """Append user message and set pending query so we switch to chat view, then process on next run."""
     st.session_state.messages.append({"role": "user", "content": prompt, "source_url": None, "last_data_update": None})
+    st.session_state.pending_query = (prompt, selected_fund_id)
 
-    with st.chat_message("user"):
-        st.markdown(prompt)
 
-    with st.chat_message("assistant"):
-        with st.spinner("Thinking…"):
-            try:
-                result = chat(query=prompt, fund_id=selected_fund_id)
-                reply = result.get("message", "")
-                source_url = result.get("source_url", "")
-                last_data_update = result.get("last_data_update", "")
-                st.markdown(reply)
-                if source_url:
-                    st.caption(f"[View source on INDmoney]({source_url})")
-                if last_data_update:
-                    st.caption(f"Data as of {last_data_update}")
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": reply,
-                    "source_url": source_url,
-                    "last_data_update": last_data_update,
-                })
-            except Exception as e:
-                st.error(f"Something went wrong: {e}")
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": str(e),
-                    "source_url": None,
-                    "last_data_update": None,
-                })
+def process_pending_response() -> bool:
+    """If a response is pending, call RAG + Groq and append assistant message. Returns True if processed."""
+    pending = st.session_state.get("pending_query")
+    if not pending:
+        return False
+    prompt, fund_id = pending
+    st.session_state.pending_query = None
+    try:
+        result = chat(query=prompt, fund_id=fund_id)
+        reply = result.get("message", "")
+        source_url = result.get("source_url", "")
+        last_data_update = result.get("last_data_update", "")
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": reply,
+            "source_url": source_url,
+            "last_data_update": last_data_update,
+        })
+    except Exception as e:
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": str(e),
+            "source_url": None,
+            "last_data_update": None,
+        })
+    return True
 
 
 def main():
@@ -232,6 +241,14 @@ def main():
 
     st.markdown(STYLES, unsafe_allow_html=True)
 
+    # Session state: chat history, pending query (for immediate switch to chat view), selected fund
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    if "pending_query" not in st.session_state:
+        st.session_state.pending_query = None
+    if "selected_fund_id" not in st.session_state:
+        st.session_state.selected_fund_id = None
+
     # Load fund list (same source as FastAPI GET /funds)
     try:
         registry = load_registry(REGISTRY_PATH)
@@ -242,29 +259,35 @@ def main():
         funds = []
         last_update = "—"
 
-    # ----- Left sidebar: scrollable fund list -----
+    selected_fund_id = st.session_state.selected_fund_id
+
+    # ----- Left sidebar: clickable fund list (no radio), reduced padding, highlight selected -----
     with st.sidebar:
         st.markdown("## Select a fund")
         st.caption("Choose a fund to ask questions about it.")
         st.markdown("")  # spacing
 
-        fund_options = ["All funds"] + [f["fund_name"] for f in funds]
-        fund_name_to_id = {f["fund_name"]: f["fund_id"] for f in funds}
-
-        selected_label = st.radio(
-            "Fund",
-            options=fund_options,
-            label_visibility="collapsed",
-            key="fund_selector",
-        )
-        selected_fund_id = None if selected_label == "All funds" else fund_name_to_id.get(selected_label)
+        # All funds
+        if st.button(
+            "All funds",
+            key="fund_all",
+            type="primary" if selected_fund_id is None else "secondary",
+            use_container_width=True,
+        ):
+            st.session_state.selected_fund_id = None
+            st.rerun()
+        for f in funds:
+            if st.button(
+                f["fund_name"],
+                key=f"fund_{f['fund_id']}",
+                type="primary" if selected_fund_id == f["fund_id"] else "secondary",
+                use_container_width=True,
+            ):
+                st.session_state.selected_fund_id = f["fund_id"]
+                st.rerun()
 
         st.divider()
         st.caption(f"Data as of: **{last_update}**")
-
-    # Session state for chat history
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
 
     # ----- Right side: main content -----
     # Header: title + last updated + Reset (only after first message)
@@ -302,7 +325,7 @@ def main():
                     key=f"suggest_{title.replace(' ', '_')}",
                     use_container_width=True,
                 ):
-                    run_chat(prompt, selected_fund_id)
+                    append_user_then_pending(prompt, selected_fund_id)
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
@@ -315,9 +338,16 @@ def main():
                 if msg.get("last_data_update"):
                     st.caption(f"Data as of {msg['last_data_update']}")
 
+        # If we have a pending query, show assistant bubble with spinner then process and rerun
+        if st.session_state.pending_query:
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking…"):
+                    process_pending_response()
+                    st.rerun()
+
     # ----- Chat input (fixed at bottom in flow) -----
     if prompt := st.chat_input("Ask about the selected fund..."):
-        run_chat(prompt, selected_fund_id)
+        append_user_then_pending(prompt, selected_fund_id)
         st.rerun()
 
     # ----- Disclaimer below the text input -----
