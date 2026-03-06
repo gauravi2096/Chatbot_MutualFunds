@@ -1,8 +1,44 @@
 # Deployment
 
-## Streamlit Cloud (chat backend UI)
+## Vercel (Phase 3 frontend)
 
-Deploy the backend chat on [Streamlit Community Cloud](https://share.streamlit.io/) so users can run the same RAG + Groq pipeline in a browser. The FastAPI API (`phase_2/api.py`) is **not** modified; deploy it separately if you need REST endpoints or the Phase 3 frontend.
+Deploy the chat UI on [Vercel](https://vercel.com) so users can access it from a public URL. The frontend calls the **FastAPI backend** (REST API) for `/funds`, `/last-update`, and `/chat`. You must deploy the FastAPI backend separately (Railway, Render, etc.) and set its URL in Vercel.
+
+### Prerequisites
+
+- **FastAPI backend deployed** at a public URL (e.g. `https://chatbot-api.railway.app`). Deploy `phase_2/api:app` on Railway, Render, Fly.io, or similar. See [FastAPI](#fastapi-unchanged) below.
+
+### Steps
+
+1. **Connect the repo to Vercel**
+   - Go to [vercel.com](https://vercel.com), sign in with GitHub.
+   - Import this repository.
+
+2. **Configure the project**
+   - **Framework Preset**: Other
+   - **Root Directory**: leave empty (repo root)
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `phase_3`
+   - **Install Command**: `npm install` (or leave default)
+
+3. **Environment variable**
+   - In Project Settings → Environment Variables, add:
+   - **Name**: `API_BASE_URL`
+   - **Value**: Your deployed FastAPI URL, e.g. `https://chatbot-api.railway.app` (no trailing slash)
+
+4. **Deploy**
+   - Trigger a deployment. The build runs `npm run build`, which writes `phase_3/config.js` with the API URL. The frontend will call your deployed backend.
+
+### Local development
+
+- With backend on localhost: leave `API_BASE_URL` unset or empty; `config.js` uses `""` and relative URLs work.
+- With deployed backend: `API_BASE_URL=https://your-api.railway.app npm run build` then serve `phase_3/` (e.g. `npx serve phase_3`).
+
+---
+
+## Streamlit Cloud (primary deployment — full app)
+
+Deploy the **entire application** (frontend UI + backend logic) on [Streamlit Community Cloud](https://share.streamlit.io/). The single Streamlit app includes: mutual fund selection, chat interface, suggestion cards, RAG pipeline, Groq LLM, source links, and last-updated timestamps. No separate FastAPI or Phase 3 frontend needed.
 
 ### Steps
 

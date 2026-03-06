@@ -1,8 +1,10 @@
 """
-Streamlit app for INDmoney Fund Chat — runs on Streamlit Cloud.
-Uses the same backend logic as the FastAPI API (phase_2.orchestration.chat,
-phase_1 retriever, phase_0 registry). The FastAPI app (phase_2/api.py) is
-unchanged and can be deployed separately for the Phase 3 frontend and API consumers.
+INDmoney Fund Chat — single Streamlit app (UI + backend).
+
+Runs entirely on Streamlit Cloud. Combines the Phase 3 frontend UI (fund selector,
+chat, suggestion cards) with the Phase 2 backend logic (RAG retrieval, Groq LLM).
+Uses phase_0 registry, phase_1 retriever, phase_2 orchestration. No changes to
+the data pipeline (phase_1) or scheduler (phase_4).
 """
 
 import os
@@ -32,6 +34,48 @@ from phase_0.source_registry import load_registry
 from phase_1.config import REGISTRY_PATH
 from phase_2.orchestration import chat
 
+# Suggestion cards (same prompts as Phase 3 frontend)
+SUGGESTION_CARDS = [
+    ("NAV & AUM", "Get latest NAV and fund size for any of the 10 funds.", "What is the NAV and AUM of HDFC Mid Cap Fund?"),
+    ("Expense & Returns", "Expense ratio and 1Y/3Y/5Y returns.", "What is the expense ratio and 1Y returns of HDFC Flexi Cap Fund?"),
+    ("Holdings & Risk", "Top holdings, risk level, and benchmark.", "What are the top holdings and risk level of HDFC Small Cap Fund?"),
+]
+
+
+def run_chat(prompt: str, selected_fund_id: str | None) -> None:
+    """Process a user prompt through RAG + Groq and append to messages."""
+    st.session_state.messages.append({"role": "user", "content": prompt, "source_url": None, "last_data_update": None})
+
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking…"):
+            try:
+                result = chat(query=prompt, fund_id=selected_fund_id)
+                reply = result.get("message", "")
+                source_url = result.get("source_url", "")
+                last_data_update = result.get("last_data_update", "")
+                st.markdown(reply)
+                if source_url:
+                    st.caption(f"[View source on INDmoney]({source_url})")
+                if last_data_update:
+                    st.caption(f"Data as of {last_data_update}")
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": reply,
+                    "source_url": source_url,
+                    "last_data_update": last_data_update,
+                })
+            except Exception as e:
+                st.error(f"Something went wrong: {e}")
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": str(e),
+                    "source_url": None,
+                    "last_data_update": None,
+                })
+
 
 def main():
     st.set_page_config(
@@ -51,7 +95,7 @@ def main():
         funds = []
         last_update = "—"
 
-    # Sidebar: fund selector
+    # Sidebar: fund selector (mutual fund selection UI)
     with st.sidebar:
         st.title("Select a fund")
         st.caption("Choose a fund to ask questions about it.")
@@ -66,53 +110,43 @@ def main():
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Main area: welcome + messages + input
-    st.title("INDmoney Fund Chat")
-    st.markdown("Ask factual questions about NAV, AUM, expense ratio, returns, holdings, and more. Select a fund in the sidebar to scope answers.")
+    # Header: logo, version, last update, Reset Chat
+    col_logo, col_spacer, col_reset = st.columns([2, 1, 1])
+    with col_logo:
+        st.markdown("### INDmoney Fund Chat")
+        st.caption(f"Data last updated: {last_update}")
+    with col_reset:
+        if st.button("Reset Chat", use_container_width=True):
+            st.session_state.messages = []
+            st.rerun()
 
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-            if msg.get("source_url"):
-                st.caption(f"[View source on INDmoney]({msg['source_url']})")
-            if msg.get("last_data_update"):
-                st.caption(f"Data as of {msg['last_data_update']}")
+    # Main area: welcome + suggestion cards when empty, else chat messages
+    if not st.session_state.messages:
+        st.markdown("#### Hi, welcome how can I help you?")
+        st.markdown("Select a fund from the list on the left, then ask questions about NAV, AUM, expense ratio, returns, and more.")
+        st.markdown("")
+        # Suggestion cards
+        for title, desc, prompt in SUGGESTION_CARDS:
+            if st.button(f"**{title}** — {desc}", key=f"suggest_{title}", use_container_width=True):
+                run_chat(prompt, selected_fund_id)
+                st.rerun()
+    else:
+        for msg in st.session_state.messages:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+                if msg.get("source_url"):
+                    st.caption(f"[View source on INDmoney]({msg['source_url']})")
+                if msg.get("last_data_update"):
+                    st.caption(f"Data as of {msg['last_data_update']}")
 
-    if prompt := st.chat_input("Ask a question about the selected fund…"):
-        st.session_state.messages.append({"role": "user", "content": prompt, "source_url": None, "last_data_update": None})
-
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking…"):
-                try:
-                    result = chat(query=prompt, fund_id=selected_fund_id)
-                    reply = result.get("message", "")
-                    source_url = result.get("source_url", "")
-                    last_data_update = result.get("last_data_update", "")
-                    st.markdown(reply)
-                    if source_url:
-                        st.caption(f"[View source on INDmoney]({source_url})")
-                    if last_data_update:
-                        st.caption(f"Data as of {last_data_update}")
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": reply,
-                        "source_url": source_url,
-                        "last_data_update": last_data_update,
-                    })
-                except Exception as e:
-                    st.error(f"Something went wrong: {e}")
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": str(e),
-                        "source_url": None,
-                        "last_data_update": None,
-                    })
+    # Chat input
+    placeholder = f"Ask about {selected_label}…" if selected_label else "Ask a question about the selected fund…"
+    if prompt := st.chat_input(placeholder):
+        run_chat(prompt, selected_fund_id)
+        st.rerun()
 
     st.divider()
-    st.caption("INDmoney Fund Chat is for factual information only. It does not provide investment advice. Check the source link for official data.")
+    st.caption("INDmoney Fund Chat is for factual information only. It does not provide investment advice. Check important information on the source link.")
 
 
 if __name__ == "__main__":
