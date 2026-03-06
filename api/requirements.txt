@@ -1,8 +1,0 @@
-# Dependencies for Vercel serverless API (api/*.py).
-# phase_2/__init__.py imports api (FastAPI); keep bundle minimal (no streamlit, no playwright).
-fastapi>=0.104.0
-pydantic>=2.0.0
-chromadb>=0.4.0
-sentence-transformers>=2.2.0
-groq>=0.4.0
-beautifulsoup4>=4.12.0
