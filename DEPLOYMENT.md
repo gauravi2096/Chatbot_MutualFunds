@@ -1,38 +1,43 @@
 # Deployment
 
-## Vercel (Phase 3 frontend)
+## Vercel (full-stack: frontend + API)
 
-Deploy the chat UI on [Vercel](https://vercel.com) so users can access it from a public URL. The frontend calls the **FastAPI backend** (REST API) for `/funds`, `/last-update`, and `/chat`. You must deploy the FastAPI backend separately (Railway, Render, etc.) and set its URL in Vercel.
+Deploy both the **Phase 3 frontend** and the **backend API** on [Vercel](https://vercel.com) in one project. The frontend is served from the `phase_3` output; the API runs as Vercel serverless functions under `/api` (relative paths, no localhost).
 
-### Prerequisites
+### Backend (serverless)
 
-- **FastAPI backend deployed** at a public URL (e.g. `https://chatbot-api.railway.app`). Deploy `phase_2/api:app` on Railway, Render, Fly.io, or similar. See [FastAPI](#fastapi-unchanged) below.
+- **`api/`** — Each file is a serverless function:
+  - `api/health.py` → **GET** `/api/health`
+  - `api/funds.py` → **GET** `/api/funds`
+  - `api/last-update.py` → **GET** `/api/last-update`
+  - `api/chat.py` → **POST** `/api/chat`
+- Dependencies: `api/requirements.txt` (pydantic, chromadb, sentence-transformers, groq, etc.). Data is read from repo (`phase_0/data`, `phase_1/data`).
+
+### Frontend (relative API base)
+
+- Build writes `phase_3/config.js` with `window.API_BASE = "/api"` so the UI calls `/api/health`, `/api/funds`, `/api/last-update`, `/api/chat` on the same origin (relative paths).
 
 ### Steps
 
-1. **Connect the repo to Vercel**
-   - Go to [vercel.com](https://vercel.com), sign in with GitHub.
-   - Import this repository.
+1. **Connect the repo to Vercel** and import this repository.
 
 2. **Configure the project**
    - **Framework Preset**: Other
    - **Root Directory**: leave empty (repo root)
    - **Build Command**: `npm run build`
    - **Output Directory**: `phase_3`
-   - **Install Command**: `npm install` (or leave default)
 
-3. **Environment variable**
-   - In Project Settings → Environment Variables, add:
-   - **Name**: `API_BASE_URL`
-   - **Value**: Your deployed FastAPI URL, e.g. `https://chatbot-api.railway.app` (no trailing slash)
+3. **Environment variables** (Project Settings → Environment Variables)
+   - **`API_BASE_URL`** = **`/api`** (so the frontend uses relative paths to the serverless API)
+   - **`GROQ_API_KEY`** = your Groq API key (required for the `/api/chat` LLM)
 
-4. **Deploy**
-   - Trigger a deployment. The build runs `npm run build`, which writes `phase_3/config.js` with the API URL. The frontend will call your deployed backend.
+4. **Deploy**  
+   Vercel builds the frontend (phase_3) and deploys the `api/` functions. Open the deployment URL; the app will call `/api/*` on the same domain.
 
 ### Local development
 
-- With backend on localhost: leave `API_BASE_URL` unset or empty; `config.js` uses `""` and relative URLs work.
-- With deployed backend: `API_BASE_URL=https://your-api.railway.app npm run build` then serve `phase_3/` (e.g. `npx serve phase_3`).
+- **Frontend only (calls external API):** Leave `API_BASE_URL` unset or set to your backend URL; run `npm run build` and serve `phase_3/`.
+- **Full-stack on Vercel:** Use `vercel dev` from the project root to run frontend and API locally; set `API_BASE_URL=/api` so the app uses the local serverless API.
 
 ---
 
