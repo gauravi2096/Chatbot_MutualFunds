@@ -33,6 +33,18 @@ The workflow `.github/workflows/daily-data-update.yml`:
 
 Ensure the repo has write access for the workflow (default `GITHUB_TOKEN` can push when the workflow is in the same repo).
 
+## Verifying the scheduler
+
+1. **Trigger manually**: GitHub → Actions → "Daily data update" → "Run workflow" (workflow_dispatch).
+2. **Confirm success**: The run should complete with a green check; job "update-data" runs ingestion then commits and pushes.
+3. **Verify committed files**: After a successful run, the latest commit on `main` (by `github-actions[bot]`) should update:
+   - `phase_1/data/funds.json` — `last_updated` timestamp will change.
+   - `phase_0/data/source_registry.json` — `last_data_update` updated.
+   - `phase_1/data/chroma` — vector store files updated.
+4. **Check timestamp**: In `phase_1/data/funds.json`, the top-level `last_updated` field should reflect the run time (e.g. after a 10 AM IST run, it will show that date/time).
+
+From CLI: `gh run list --workflow="Daily data update"` and `gh run view <run-id>` to inspect; `git pull` then inspect the latest commit and the three paths above.
+
 ## Monitoring
 
 - Logs: Check workflow run logs in the Actions tab, or local stdout when run manually.
