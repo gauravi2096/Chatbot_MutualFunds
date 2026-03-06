@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>INDmoney Fund Chat</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <span class="logo">INDmoney Fund Chat</span>
+      <span class="logo-version">v1.0</span>
+      <span class="last-update" id="last-update" aria-live="polite"></span>
+    </div>
+    <button type="button" class="btn-reset" id="btn-reset" aria-label="Reset chat" hidden>Reset Chat</button>
+  </header>
+
+  <div class="app-body">
+    <aside class="sidebar" aria-label="Fund selection">
+      <h2 class="sidebar-title">Select a fund</h2>
+      <p class="sidebar-hint">Choose a fund to ask questions about it.</p>
+      <ul class="fund-list" id="fund-list" role="list"></ul>
+    </aside>
+    <main class="main">
+      <div class="main-scroll">
+        <section class="welcome" id="welcome">
+          <h1 class="welcome-title">Hi, welcome how can I help you?</h1>
+          <p class="welcome-intro">Select a fund from the list on the left, then ask questions about NAV, AUM, expense ratio, returns, and more.</p>
+          <div class="suggestion-cards">
+            <button type="button" class="card" data-prompt="What is the NAV and AUM of HDFC Mid Cap Fund?">
+              <span class="card-icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </span>
+              <span class="card-title">NAV & AUM</span>
+              <span class="card-desc">Get latest NAV and fund size for any of the 10 funds.</span>
+            </button>
+            <button type="button" class="card" data-prompt="What is the expense ratio and 1Y returns of HDFC Flexi Cap Fund?">
+              <span class="card-icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-3 3"/></svg>
+              </span>
+              <span class="card-title">Expense & Returns</span>
+              <span class="card-desc">Expense ratio and 1Y/3Y/5Y returns.</span>
+            </button>
+            <button type="button" class="card" data-prompt="What are the top holdings and risk level of HDFC Small Cap Fund?">
+              <span class="card-icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+              </span>
+              <span class="card-title">Holdings & Risk</span>
+              <span class="card-desc">Top holdings, risk level, and benchmark.</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="chat" id="chat" aria-live="polite" hidden>
+          <div class="messages" id="messages"></div>
+        </section>
+      </div>
+
+      <footer class="footer">
+        <div class="input-wrap">
+          <input type="text" class="input" id="input" placeholder="Ask a question about the selected fund…" autocomplete="off" maxlength="2000" />
+          <button type="button" class="btn-send" id="send" aria-label="Send">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9 22 2z"/></svg>
+          </button>
+        </div>
+        <p class="disclaimer">INDmoney Fund Chat is for factual information only. It does not provide investment advice. Check important information on the source link.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

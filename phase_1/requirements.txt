@@ -1,0 +1,15 @@
+# Phase 1 — Data Ingestion & RAG
+# Install from project root: pip install -r phase_1/requirements.txt
+# Then install Playwright browsers: playwright install chromium
+
+# Phase 0 (schema, registry, timestamp)
+# pip install -r phase_0/requirements.txt
+
+# Scraping: Playwright for JS-rendered pages
+playwright>=1.40.0
+# HTML parsing for extraction (after Playwright returns HTML)
+beautifulsoup4>=4.12.0
+
+# Vector store and embeddings
+chromadb>=0.4.0
+sentence-transformers>=2.2.0

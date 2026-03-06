@@ -1,0 +1,13 @@
+# Phase 2 — Backend (API & Groq)
+# Install from project root: pip install -r phase_2/requirements.txt
+# Set GROQ_API_KEY in the environment before running the API.
+
+# API
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Groq LLM
+groq>=0.4.0
+
+# Phase 0 and Phase 1 are required (schema, registry, retriever, vector store)
+# Install: pip install -r phase_0/requirements.txt -r phase_1/requirements.txt
