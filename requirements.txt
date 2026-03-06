@@ -1,15 +1,16 @@
 # Root requirements — for Streamlit Cloud (streamlit_app.py).
-# Aggregates phase_0, phase_1, phase_2 deps needed for the chat backend only.
-# For local FastAPI: use phase_2/run_api.py and install phase_0 + phase_1 + phase_2 requirements.
+# Aggregates phase_0, phase_1, phase_2 deps so package __init__.py imports resolve.
 
 streamlit>=1.28.0
 
 # Phase 0 (registry, schema)
 pydantic>=2.0.0
 
-# Phase 1 (retriever, vector store — no Playwright; ingestion not run on Streamlit Cloud)
+# Phase 1 (config, retriever, scraper, vector store — phase_1/__init__.py imports scraper)
+beautifulsoup4>=4.12.0
 chromadb>=0.4.0
 sentence-transformers>=2.2.0
 
-# Phase 2 (orchestration, Groq)
+# Phase 2 (phase_2/__init__.py imports api, which uses FastAPI)
+fastapi>=0.104.0
 groq>=0.4.0
