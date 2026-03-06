@@ -113,9 +113,19 @@ section[data-testid="stSidebar"] button[kind="primary"] {
     color: #0f172a !important;
 }
 
-/* User message: green, right aligned (odd-indexed messages) */
+/* Chat messages: spacing between bubbles; hide avatar icons */
+div[data-testid="stChatMessage"] {
+    margin-bottom: 1rem !important;
+}
+div[data-testid="stChatMessage"] [data-testid="stImage"],
+div[data-testid="stChatMessage"] img[alt],
+div[data-testid="stChatMessage"] .stChatAvatar {
+    display: none !important;
+}
+
+/* User message: green (#84CC16), right aligned */
 div[data-testid="stChatMessage"]:nth-of-type(odd) {
-    margin-left: auto;
+    margin-left: auto !important;
     max-width: 85%;
 }
 div[data-testid="stChatMessage"]:nth-of-type(odd) div[data-testid="stChatMessageContent"] {
@@ -126,13 +136,21 @@ div[data-testid="stChatMessage"]:nth-of-type(odd) div[data-testid="stChatMessage
     border: 1px solid #65a30d;
 }
 
-/* Assistant message: light grey, left aligned (even-indexed messages) */
+/* Assistant message: light grey (#F1F5F9) only, left aligned, never green */
+div[data-testid="stChatMessage"]:nth-of-type(even) {
+    margin-right: auto;
+    max-width: 85%;
+}
 div[data-testid="stChatMessage"]:nth-of-type(even) div[data-testid="stChatMessageContent"] {
     background: #F1F5F9 !important;
     color: #0f172a !important;
     border-radius: 18px;
     padding: 0.75rem 1rem;
     border: 1px solid #E2E8F0;
+}
+/* Keep source link and timestamp inside assistant bubble (captions inherit bubble style) */
+div[data-testid="stChatMessage"]:nth-of-type(even) div[data-testid="stChatMessageContent"] .stCaptionContainer {
+    color: #475569 !important;
 }
 
 /* Chat input: fixed at bottom, light theme */
@@ -329,9 +347,9 @@ def main():
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
-        # Chat view: show all messages with source link and timestamp
+        # Chat view: show all messages with source link and timestamp (no avatars)
         for msg in st.session_state.messages:
-            with st.chat_message(msg["role"]):
+            with st.chat_message(msg["role"], avatar=None):
                 st.markdown(msg["content"])
                 if msg.get("source_url"):
                     st.caption(f"[View source on INDmoney]({msg['source_url']})")
@@ -340,7 +358,7 @@ def main():
 
         # If we have a pending query, show assistant bubble with spinner then process and rerun
         if st.session_state.pending_query:
-            with st.chat_message("assistant"):
+            with st.chat_message("assistant", avatar=None):
                 with st.spinner("Thinking…"):
                     process_pending_response()
                     st.rerun()
