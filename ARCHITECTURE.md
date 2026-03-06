@@ -151,3 +151,16 @@ Base URL: `https://www.indmoney.com/mutual-funds/...`
 3. **Backend** → **Groq** (prompt with context + rules) → **Response shaping** (add source link + timestamp) → **Frontend** → **User**.
 
 This document describes only the phase-wise architecture; implementation details and code are out of scope.
+
+---
+
+## Deployment
+
+### Streamlit Cloud (backend chat UI)
+
+The same backend logic (Phase 1 retriever + Phase 2 orchestration + Groq) runs as a Streamlit app for deployment on Streamlit Cloud:
+
+- **Entry point**: `streamlit_app.py` at repo root. Run with `streamlit run streamlit_app.py` (working directory = repo root).
+- **Dependencies**: Root `requirements.txt` (streamlit, phase_0/1/2 deps for chat only; no Playwright or FastAPI).
+- **Secrets**: Set `GROQ_API_KEY` (and optionally `GROQ_MODEL`) in Streamlit Cloud → App settings → Secrets.
+- **Existing API**: The FastAPI app (`phase_2/api.py`) and all endpoints (`GET /health`, `GET /funds`, `GET /last-update`, `POST /chat`) are unchanged and can be deployed separately (e.g. Railway, Render) for the Phase 3 frontend and other API consumers.

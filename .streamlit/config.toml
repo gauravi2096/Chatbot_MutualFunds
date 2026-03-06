@@ -1,0 +1,10 @@
+# Streamlit config for INDmoney Fund Chat (Streamlit Cloud).
+# https://docs.streamlit.io/develop/api-reference/configuration
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
