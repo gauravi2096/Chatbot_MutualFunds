@@ -6,11 +6,17 @@ streamlit>=1.28.0
 # Phase 0 (registry, schema)
 pydantic>=2.0.0
 
+# Common HTTP + env helpers
+requests>=2.31.0
+python-dotenv>=1.0.0
+
 # Phase 1 (config, retriever, scraper, vector store — phase_1/__init__.py imports scraper)
+playwright>=1.40.0
 beautifulsoup4>=4.12.0
 chromadb>=0.4.0
 sentence-transformers>=2.2.0
 
 # Phase 2 (phase_2/__init__.py imports api, which uses FastAPI)
 fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
 groq>=0.4.0
