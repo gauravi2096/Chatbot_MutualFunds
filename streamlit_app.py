@@ -81,8 +81,78 @@ def main():
     st.set_page_config(
         page_title="INDmoney Fund Chat",
         page_icon="💬",
-        layout="centered",
+        layout="wide",
         initial_sidebar_state="expanded",
+    )
+
+    # Custom CSS to approximate the original Phase 3 design (dark theme, two-column layout, chat bubbles)
+    st.markdown(
+        """
+        <style>
+        .stApp {
+            background: #020617;
+            color: #e5e7eb;
+        }
+
+        /* Sidebar: fund selector column */
+        section[data-testid="stSidebar"] {
+            background: #020617;
+            border-right: 1px solid #1f2937;
+        }
+        section[data-testid="stSidebar"] .stMarkdown,
+        section[data-testid="stSidebar"] label {
+            color: #e5e7eb !important;
+        }
+
+        /* Main container spacing */
+        .main-container {
+            padding: 0.75rem 1.5rem 1.5rem 1.5rem;
+        }
+
+        /* Suggestion cards */
+        .suggestion-card button {
+            width: 100%;
+            text-align: left;
+            background: #0b1120;
+            border-radius: 16px;
+            border: 1px solid #1f2937;
+            padding: 0.9rem 1rem;
+            box-shadow: 0 10px 25px rgba(15,23,42,0.45);
+            color: #e5e7eb;
+        }
+        .suggestion-card button:hover {
+            background: #020617;
+            border-color: #22c55e;
+        }
+
+        /* Chat bubbles */
+        div[data-testid="stChatMessageContent"] {
+            background: #020617;
+            border-radius: 18px;
+            padding: 0.75rem 1rem;
+            border: 1px solid #1f2937;
+        }
+
+        /* Chat input bar */
+        div[data-testid="stChatInput"] {
+            border-top: 1px solid #1f2937;
+            background: #020617;
+        }
+
+        /* Reset button styling */
+        .reset-button button {
+            border-radius: 9999px;
+            border: 1px solid #4b5563;
+            background: #020617;
+            color: #e5e7eb;
+        }
+        .reset-button button:hover {
+            border-color: #22c55e;
+            color: #bbf7d0;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
     )
 
     # Load fund list (same source as FastAPI GET /funds)
@@ -116,20 +186,29 @@ def main():
         st.markdown("### INDmoney Fund Chat")
         st.caption(f"Data last updated: {last_update}")
     with col_reset:
-        if st.button("Reset Chat", use_container_width=True):
-            st.session_state.messages = []
-            st.rerun()
+        if st.session_state.messages:
+            with st.container():
+                st.markdown('<div class="reset-button">', unsafe_allow_html=True)
+                if st.button("Reset Chat", use_container_width=True):
+                    st.session_state.messages = []
+                    st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
 
     # Main area: welcome + suggestion cards when empty, else chat messages
     if not st.session_state.messages:
-        st.markdown("#### Hi, welcome how can I help you?")
-        st.markdown("Select a fund from the list on the left, then ask questions about NAV, AUM, expense ratio, returns, and more.")
-        st.markdown("")
-        # Suggestion cards
-        for title, desc, prompt in SUGGESTION_CARDS:
-            if st.button(f"**{title}** — {desc}", key=f"suggest_{title}", use_container_width=True):
-                run_chat(prompt, selected_fund_id)
-                st.rerun()
+        with st.container():
+            st.markdown("#### Hi, welcome how can I help you?")
+            st.markdown(
+                "Select a fund from the list on the left, then ask questions about NAV, AUM, expense ratio, returns, and more."
+            )
+            cols = st.columns(3)
+            for (title, desc, prompt), col in zip(SUGGESTION_CARDS, cols):
+                with col:
+                    st.markdown('<div class="suggestion-card">', unsafe_allow_html=True)
+                    if st.button(f"{title}\n\n{desc}", key=f"suggest_{title}"):
+                        run_chat(prompt, selected_fund_id)
+                        st.rerun()
+                    st.markdown("</div>", unsafe_allow_html=True)
     else:
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
@@ -140,7 +219,7 @@ def main():
                     st.caption(f"Data as of {msg['last_data_update']}")
 
     # Chat input
-    placeholder = f"Ask about {selected_label}…" if selected_label else "Ask a question about the selected fund…"
+    placeholder = "Ask about the selected fund..."
     if prompt := st.chat_input(placeholder):
         run_chat(prompt, selected_fund_id)
         st.rerun()
