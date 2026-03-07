@@ -113,29 +113,39 @@ section[data-testid="stSidebar"] button[kind="primary"] {
     color: #0f172a !important;
 }
 
-/* Chat messages: clear spacing between bubbles; hide avatar/icons */
+/* Chat messages: clear spacing; hide avatar column (Streamlit uses aria-label for role) */
 div[data-testid="stChatMessage"] {
     margin-bottom: 1.25rem !important;
 }
-/* Hide avatar/icons next to messages (image and icon only, not content column) */
+/* Hide avatar/icons: images and svg so red/orange icons never show */
 div[data-testid="stChatMessage"] [data-testid="stImage"],
 div[data-testid="stChatMessage"] img,
+div[data-testid="stChatMessage"] svg,
 div[data-testid="stChatMessage"] .stChatAvatar {
     display: none !important;
+    visibility: hidden !important;
 }
-/* Content column takes full width when avatar is hidden */
+/* Shrink avatar column when present so content has room */
+div[data-testid="stChatMessage"] > div > div:first-child {
+    max-width: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
 div[data-testid="stChatMessage"] [data-testid="stChatMessageContent"] {
     width: 100% !important;
 }
 
-/* User message: green (#84CC16), right aligned - use role marker */
-.chat-msg-user + div[data-testid="stChatMessage"],
-div[data-testid="stChatMessage"]:nth-of-type(odd) {
+/* User message: green (#84CC16), right aligned - Streamlit sets aria-label="user" or "human" */
+div[data-testid="stChatMessage"][aria-label="user"],
+div[data-testid="stChatMessage"][aria-label="human"] {
     margin-left: auto !important;
+    margin-right: 0 !important;
     max-width: 85%;
 }
-.chat-msg-user + div[data-testid="stChatMessage"] div[data-testid="stChatMessageContent"],
-div[data-testid="stChatMessage"]:nth-of-type(odd) div[data-testid="stChatMessageContent"] {
+div[data-testid="stChatMessage"][aria-label="user"] div[data-testid="stChatMessageContent"],
+div[data-testid="stChatMessage"][aria-label="human"] div[data-testid="stChatMessageContent"] {
     background: #84CC16 !important;
     color: #0f172a !important;
     border-radius: 18px;
@@ -143,24 +153,46 @@ div[data-testid="stChatMessage"]:nth-of-type(odd) div[data-testid="stChatMessage
     border: 1px solid #65a30d;
 }
 
-/* Assistant message: light grey (#F1F5F9) only, left aligned - use role marker */
-.chat-msg-assistant + div[data-testid="stChatMessage"],
-div[data-testid="stChatMessage"]:nth-of-type(even) {
+/* Assistant message: light grey (#F1F5F9) only, left aligned - Streamlit sets aria-label="assistant" or "ai" */
+div[data-testid="stChatMessage"][aria-label="assistant"],
+div[data-testid="stChatMessage"][aria-label="ai"] {
     margin-left: 0 !important;
     margin-right: auto !important;
     max-width: 85%;
 }
-.chat-msg-assistant + div[data-testid="stChatMessage"] div[data-testid="stChatMessageContent"],
-div[data-testid="stChatMessage"]:nth-of-type(even) div[data-testid="stChatMessageContent"] {
+div[data-testid="stChatMessage"][aria-label="assistant"] div[data-testid="stChatMessageContent"],
+div[data-testid="stChatMessage"][aria-label="ai"] div[data-testid="stChatMessageContent"] {
     background: #F1F5F9 !important;
     color: #0f172a !important;
     border-radius: 18px;
     padding: 0.75rem 1rem;
     border: 1px solid #E2E8F0;
 }
-.chat-msg-assistant + div[data-testid="stChatMessage"] div[data-testid="stChatMessageContent"] .stCaptionContainer,
-div[data-testid="stChatMessage"]:nth-of-type(even) div[data-testid="stChatMessageContent"] .stCaptionContainer {
+div[data-testid="stChatMessage"][aria-label="assistant"] div[data-testid="stChatMessageContent"] .stCaptionContainer,
+div[data-testid="stChatMessage"][aria-label="ai"] div[data-testid="stChatMessageContent"] .stCaptionContainer {
     color: #475569 !important;
+}
+
+/* Fallback when aria-label is not on container: odd = user (green), even = assistant (grey) */
+div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(odd) {
+    margin-left: auto !important;
+    max-width: 85%;
+}
+div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(odd) div[data-testid="stChatMessageContent"] {
+    background: #84CC16 !important;
+    color: #0f172a !important;
+    border-radius: 18px;
+    border: 1px solid #65a30d;
+}
+div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(even) {
+    margin-right: auto !important;
+    max-width: 85%;
+}
+div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(even) div[data-testid="stChatMessageContent"] {
+    background: #F1F5F9 !important;
+    color: #0f172a !important;
+    border-radius: 18px;
+    border: 1px solid #E2E8F0;
 }
 
 /* Chat input: fixed at bottom, light theme */
@@ -360,13 +392,8 @@ def main():
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
-        # Chat view: role markers so CSS can target user (green, right) vs assistant (grey, left)
+        # Chat view: Streamlit sets aria-label on container so CSS can target user vs assistant
         for msg in st.session_state.messages:
-            role_class = "chat-msg-user" if msg["role"] == "user" else "chat-msg-assistant"
-            st.markdown(
-                f'<div class="{role_class}" style="height:0;overflow:hidden;margin:0;padding:0;line-height:0;" aria-hidden="true"></div>',
-                unsafe_allow_html=True,
-            )
             with st.chat_message(msg["role"], avatar=None):
                 st.markdown(msg["content"])
                 if msg.get("source_url"):
@@ -376,10 +403,6 @@ def main():
 
         # If we have a pending query, show assistant bubble with spinner then process and rerun
         if st.session_state.pending_query:
-            st.markdown(
-                '<div class="chat-msg-assistant" style="height:0;overflow:hidden;margin:0;padding:0;line-height:0;" aria-hidden="true"></div>',
-                unsafe_allow_html=True,
-            )
             with st.chat_message("assistant", avatar=None):
                 with st.spinner("Thinking…"):
                     process_pending_response()
