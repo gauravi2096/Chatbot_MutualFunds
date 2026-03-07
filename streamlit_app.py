@@ -83,9 +83,9 @@ section[data-testid="stSidebar"] button[kind="primary"] {
     border-color: #65a30d;
 }
 
-/* Main content spacing */
+/* Main content spacing: extra top padding so Reset Chat is not cut off */
 .block-container {
-    padding-top: 1.5rem;
+    padding-top: 2rem !important;
     padding-bottom: 1rem;
     max-width: 900px;
 }
@@ -113,21 +113,28 @@ section[data-testid="stSidebar"] button[kind="primary"] {
     color: #0f172a !important;
 }
 
-/* Chat messages: spacing between bubbles; hide avatar icons */
+/* Chat messages: clear spacing between bubbles; hide avatar/icons */
 div[data-testid="stChatMessage"] {
-    margin-bottom: 1rem !important;
+    margin-bottom: 1.25rem !important;
 }
+/* Hide avatar/icons next to messages (image and icon only, not content column) */
 div[data-testid="stChatMessage"] [data-testid="stImage"],
-div[data-testid="stChatMessage"] img[alt],
+div[data-testid="stChatMessage"] img,
 div[data-testid="stChatMessage"] .stChatAvatar {
     display: none !important;
 }
+/* Content column takes full width when avatar is hidden */
+div[data-testid="stChatMessage"] [data-testid="stChatMessageContent"] {
+    width: 100% !important;
+}
 
-/* User message: green (#84CC16), right aligned */
+/* User message: green (#84CC16), right aligned - use role marker */
+.chat-msg-user + div[data-testid="stChatMessage"],
 div[data-testid="stChatMessage"]:nth-of-type(odd) {
     margin-left: auto !important;
     max-width: 85%;
 }
+.chat-msg-user + div[data-testid="stChatMessage"] div[data-testid="stChatMessageContent"],
 div[data-testid="stChatMessage"]:nth-of-type(odd) div[data-testid="stChatMessageContent"] {
     background: #84CC16 !important;
     color: #0f172a !important;
@@ -136,11 +143,14 @@ div[data-testid="stChatMessage"]:nth-of-type(odd) div[data-testid="stChatMessage
     border: 1px solid #65a30d;
 }
 
-/* Assistant message: light grey (#F1F5F9) only, left aligned, never green */
+/* Assistant message: light grey (#F1F5F9) only, left aligned - use role marker */
+.chat-msg-assistant + div[data-testid="stChatMessage"],
 div[data-testid="stChatMessage"]:nth-of-type(even) {
-    margin-right: auto;
+    margin-left: 0 !important;
+    margin-right: auto !important;
     max-width: 85%;
 }
+.chat-msg-assistant + div[data-testid="stChatMessage"] div[data-testid="stChatMessageContent"],
 div[data-testid="stChatMessage"]:nth-of-type(even) div[data-testid="stChatMessageContent"] {
     background: #F1F5F9 !important;
     color: #0f172a !important;
@@ -148,7 +158,7 @@ div[data-testid="stChatMessage"]:nth-of-type(even) div[data-testid="stChatMessag
     padding: 0.75rem 1rem;
     border: 1px solid #E2E8F0;
 }
-/* Keep source link and timestamp inside assistant bubble (captions inherit bubble style) */
+.chat-msg-assistant + div[data-testid="stChatMessage"] div[data-testid="stChatMessageContent"] .stCaptionContainer,
 div[data-testid="stChatMessage"]:nth-of-type(even) div[data-testid="stChatMessageContent"] .stCaptionContainer {
     color: #475569 !important;
 }
@@ -177,12 +187,15 @@ button[kind="primary"]:hover, div[data-testid="stChatInput"] button:hover {
     color: #0f172a !important;
 }
 
-/* Reset Chat button */
+/* Reset Chat button: ensure fully visible, not cut off at top */
 .reset-button button {
     border-radius: 9999px;
     border: 1px solid #E2E8F0;
     background: #FFFFFF !important;
     color: #0f172a !important;
+    margin-top: 0 !important;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
 }
 .reset-button button:hover {
     border-color: #84CC16;
@@ -347,8 +360,13 @@ def main():
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
-        # Chat view: show all messages with source link and timestamp (no avatars)
+        # Chat view: role markers so CSS can target user (green, right) vs assistant (grey, left)
         for msg in st.session_state.messages:
+            role_class = "chat-msg-user" if msg["role"] == "user" else "chat-msg-assistant"
+            st.markdown(
+                f'<div class="{role_class}" style="height:0;overflow:hidden;margin:0;padding:0;line-height:0;" aria-hidden="true"></div>',
+                unsafe_allow_html=True,
+            )
             with st.chat_message(msg["role"], avatar=None):
                 st.markdown(msg["content"])
                 if msg.get("source_url"):
@@ -358,6 +376,10 @@ def main():
 
         # If we have a pending query, show assistant bubble with spinner then process and rerun
         if st.session_state.pending_query:
+            st.markdown(
+                '<div class="chat-msg-assistant" style="height:0;overflow:hidden;margin:0;padding:0;line-height:0;" aria-hidden="true"></div>',
+                unsafe_allow_html=True,
+            )
             with st.chat_message("assistant", avatar=None):
                 with st.spinner("Thinking…"):
                     process_pending_response()
