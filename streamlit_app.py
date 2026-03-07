@@ -83,11 +83,13 @@ section[data-testid="stSidebar"] button[kind="primary"] {
     border-color: #65a30d;
 }
 
-/* Main content spacing: extra top padding so Reset Chat is not cut off */
+/* Main content: center chat container and limit width so messages don't stretch full page */
 .block-container {
     padding-top: 2rem !important;
     padding-bottom: 1rem;
-    max-width: 900px;
+    max-width: 680px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
 
 /* Starter cards: white, border, rounded */
@@ -113,11 +115,11 @@ section[data-testid="stSidebar"] button[kind="primary"] {
     color: #0f172a !important;
 }
 
-/* Chat messages: clear spacing (Streamlit uses aria-label for role) */
+/* Chat messages: improved spacing between messages; reduced padding inside bubbles */
 div[data-testid="stChatMessage"] {
-    margin-bottom: 1.25rem !important;
+    margin-bottom: 1.5rem !important;
 }
-/* Hide only the avatar/icon elements; do not collapse columns so message text stays visible */
+/* Hide only the avatar/icon elements */
 div[data-testid="stChatMessage"] [data-testid="stImage"],
 div[data-testid="stChatMessage"] img,
 div[data-testid="stChatMessage"] svg,
@@ -125,7 +127,14 @@ div[data-testid="stChatMessage"] .stChatAvatar {
     display: none !important;
 }
 
-/* User message: green (#84CC16), right aligned - Streamlit sets aria-label="user" or "human" */
+/* Chat bubble content: no green background; reduced padding; subtle border */
+div[data-testid="stChatMessage"] div[data-testid="stChatMessageContent"] {
+    padding: 0.5rem 0.75rem !important;
+    border-radius: 12px;
+    border: 1px solid #E2E8F0;
+}
+
+/* User message: no green, right aligned - Streamlit sets aria-label="user" or "human" */
 div[data-testid="stChatMessage"][aria-label="user"],
 div[data-testid="stChatMessage"][aria-label="human"] {
     margin-left: auto !important;
@@ -134,14 +143,11 @@ div[data-testid="stChatMessage"][aria-label="human"] {
 }
 div[data-testid="stChatMessage"][aria-label="user"] div[data-testid="stChatMessageContent"],
 div[data-testid="stChatMessage"][aria-label="human"] div[data-testid="stChatMessageContent"] {
-    background: #84CC16 !important;
+    background: #FFFFFF !important;
     color: #0f172a !important;
-    border-radius: 18px;
-    padding: 0.75rem 1rem;
-    border: 1px solid #65a30d;
 }
 
-/* Assistant message: light grey (#F1F5F9) only, left aligned - Streamlit sets aria-label="assistant" or "ai" */
+/* Assistant message: light grey, left aligned - Streamlit sets aria-label="assistant" or "ai" */
 div[data-testid="stChatMessage"][aria-label="assistant"],
 div[data-testid="stChatMessage"][aria-label="ai"] {
     margin-left: 0 !important;
@@ -152,25 +158,20 @@ div[data-testid="stChatMessage"][aria-label="assistant"] div[data-testid="stChat
 div[data-testid="stChatMessage"][aria-label="ai"] div[data-testid="stChatMessageContent"] {
     background: #F1F5F9 !important;
     color: #0f172a !important;
-    border-radius: 18px;
-    padding: 0.75rem 1rem;
-    border: 1px solid #E2E8F0;
 }
 div[data-testid="stChatMessage"][aria-label="assistant"] div[data-testid="stChatMessageContent"] .stCaptionContainer,
 div[data-testid="stChatMessage"][aria-label="ai"] div[data-testid="stChatMessageContent"] .stCaptionContainer {
     color: #475569 !important;
 }
 
-/* Fallback when aria-label is not on container: odd = user (green), even = assistant (grey) */
+/* Fallback when aria-label is not on container: odd = user, even = assistant (no green) */
 div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(odd) {
     margin-left: auto !important;
     max-width: 85%;
 }
 div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(odd) div[data-testid="stChatMessageContent"] {
-    background: #84CC16 !important;
+    background: #FFFFFF !important;
     color: #0f172a !important;
-    border-radius: 18px;
-    border: 1px solid #65a30d;
 }
 div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(even) {
     margin-right: auto !important;
@@ -179,8 +180,6 @@ div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(even) {
 div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(even) div[data-testid="stChatMessageContent"] {
     background: #F1F5F9 !important;
     color: #0f172a !important;
-    border-radius: 18px;
-    border: 1px solid #E2E8F0;
 }
 
 /* Chat input: fixed at bottom, light theme */
