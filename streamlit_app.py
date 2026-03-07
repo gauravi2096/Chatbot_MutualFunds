@@ -113,28 +113,16 @@ section[data-testid="stSidebar"] button[kind="primary"] {
     color: #0f172a !important;
 }
 
-/* Chat messages: clear spacing; hide avatar column (Streamlit uses aria-label for role) */
+/* Chat messages: clear spacing (Streamlit uses aria-label for role) */
 div[data-testid="stChatMessage"] {
     margin-bottom: 1.25rem !important;
 }
-/* Hide avatar/icons: images and svg so red/orange icons never show */
+/* Hide only the avatar/icon elements; do not collapse columns so message text stays visible */
 div[data-testid="stChatMessage"] [data-testid="stImage"],
 div[data-testid="stChatMessage"] img,
 div[data-testid="stChatMessage"] svg,
 div[data-testid="stChatMessage"] .stChatAvatar {
     display: none !important;
-    visibility: hidden !important;
-}
-/* Shrink avatar column when present so content has room */
-div[data-testid="stChatMessage"] > div > div:first-child {
-    max-width: 0 !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
-    padding: 0 !important;
-    margin: 0 !important;
-}
-div[data-testid="stChatMessage"] [data-testid="stChatMessageContent"] {
-    width: 100% !important;
 }
 
 /* User message: green (#84CC16), right aligned - Streamlit sets aria-label="user" or "human" */
