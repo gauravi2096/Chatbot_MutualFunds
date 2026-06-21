@@ -1,30 +1,30 @@
 {
-  "last_updated": "Jun 20, 2026 01:34 pm",
+  "last_updated": "Jun 21, 2026 02:17 pm",
   "funds": [
     {
       "fund_id": "hdfc-infrastructure-fund-direct-plan-growth-option-3315",
       "fund_name": "HDFC Infrastructure Fund",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-infrastructure-fund-direct-plan-growth-option-3315",
-      "nav": 0.0,
-      "nav_date": null,
-      "daily_pct_change": 0.0,
-      "aum": "N/A",
-      "expense_ratio": "N/A",
-      "min_investment_lumpsum": "N/A",
-      "min_investment_sip": "N/A",
-      "exit_load": "N/A",
-      "elss_lock_in": "N/A",
-      "cagr_1y": "N/A",
-      "cagr_3y": "N/A",
-      "cagr_5y": "N/A",
-      "since_inception": "N/A",
-      "equity_pct": "N/A",
-      "debt_cash_pct": "N/A",
-      "market_cap_split": "N/A",
-      "top_holdings": "N/A",
-      "risk_level": "N/A",
-      "benchmark": "BSE India Infrastructure TRI TR INR",
-      "scraped_at": "2026-06-20T08:04:06Z"
+      "nav": 53.66,
+      "nav_date": "2026-06-19",
+      "daily_pct_change": 0.3,
+      "aum": "2393 Cr",
+      "expense_ratio": "1.14%",
+      "min_investment_lumpsum": "100",
+      "min_investment_sip": "100",
+      "exit_load": "1%",
+      "elss_lock_in": "No Lock-in",
+      "cagr_1y": "4.21%",
+      "cagr_3y": "22.56%",
+      "cagr_5y": "23.01%",
+      "since_inception": "12.38%",
+      "equity_pct": "99.6%",
+      "debt_cash_pct": "0.4%",
+      "market_cap_split": "Large cap 54.8%; Mid cap 4.9%; Small cap 36.6%",
+      "top_holdings": "Larsen & Toubro Ltd(7.17%), ICICI Bank Ltd(4.44%), Kalpataru Projects International Ltd(4.13%)",
+      "risk_level": "Very High Risk",
+      "benchmark": "S&P BSE",
+      "scraped_at": "2026-06-21T08:47:01Z"
     },
     {
       "fund_id": "hdfc-mid-cap-fund-direct-plan-growth-option-3097",
@@ -49,7 +49,7 @@
       "top_holdings": "Max Financial Services Ltd(4.49%), AU Small Finance Bank Ltd(4.01%), The Federal Bank Ltd(3.79%)",
       "risk_level": "Very High Risk",
       "benchmark": "Nifty Midcap 150 TR INR",
-      "scraped_at": "2026-06-20T08:04:09Z"
+      "scraped_at": "2026-06-21T08:47:31Z"
     },
     {
       "fund_id": "hdfc-small-cap-fund-direct-growth-option-3580",
@@ -74,7 +74,7 @@
       "top_holdings": "Firstsource Solutions Ltd(3.92%), Aster DM Healthcare Ltd Ordinary Shares(3.8%), Bank of Baroda(3.24%)",
       "risk_level": "Very High Risk",
       "benchmark": "S&P BSE",
-      "scraped_at": "2026-06-20T08:04:11Z"
+      "scraped_at": "2026-06-21T08:47:33Z"
     },
     {
       "fund_id": "hdfc-flexi-cap-fund-direct-plan-growth-option-3184",
@@ -99,7 +99,7 @@
       "top_holdings": "ICICI Bank Ltd(8.83%), Axis Bank Ltd(6.84%), HDFC Bank Ltd(6.48%)",
       "risk_level": "Very High Risk",
       "benchmark": "Nifty 500 TR INR",
-      "scraped_at": "2026-06-20T08:04:13Z"
+      "scraped_at": "2026-06-21T08:47:35Z"
     },
     {
       "fund_id": "hdfc-value-fund-direct-plan-growth-option-3623",
@@ -124,7 +124,7 @@
       "top_holdings": "ICICI Bank Ltd(6.44%), HDFC Bank Ltd(5.26%), Axis Bank Ltd(4.27%)",
       "risk_level": "Very High Risk",
       "benchmark": "Nifty 500 TR INR",
-      "scraped_at": "2026-06-20T08:04:15Z"
+      "scraped_at": "2026-06-21T08:47:38Z"
     },
     {
       "fund_id": "hdfc-dynamic-debt-plan-direct-plan-growth-option-513",
@@ -149,7 +149,7 @@
       "top_holdings": "HDFC Dynamic Debt Fund has allocated its funds majorly in Government, Financial Services, Utilities, Corporate, Cash Equivalent. Its top holdings are 7.34% Govt Stock 2064, 7.25% Govt Stock 2063, 6.9% Govt Stock 2065, 7.3% Govt Stock 2053, Rec Limited Taxation As it is a dynamic bond mutual fund the taxation is as follows: If the fund is debt oriented i.e. asset allocation of more than 65% in debt instruments: Invested before 1 April 2023 and held for less than 24 months, STCG will be taxed at your income slab rate. Invested before 1 April 2023 and held for more than 24 months, LTCG will be taxed at 12.5%. Invested after 1 April 2023, capital gains will be taxed at your income slab rate. Dividends will always be taxed at slab rate. Investment objective of HDFC Dynamic Debt Fund To generate",
       "risk_level": "Moderate Risk",
       "benchmark": "Nifty Composite Debt TR INR",
-      "scraped_at": "2026-06-20T08:04:17Z"
+      "scraped_at": "2026-06-21T08:47:42Z"
     },
     {
       "fund_id": "hdfc-low-duration-direct-plan-growth-option-1481",
@@ -174,7 +174,7 @@
       "top_holdings": "HDFC Low Duration Fund has allocated its funds majorly in Financial Services, Corporate, Government, Cash Equivalent. Its top holdings are 6.52% Govt Stock 2031, 6.75% Govt Stock 2033, Jubilant Beverages Limited, Small Industries Development Bank Of India, National Bank For Agriculture And Rural Development Taxation As it is a low duration mutual fund the taxation is as follows: If the fund is debt oriented i.e. asset allocation of more than 65% in debt instruments: Invested before 1 April 2023 and held for less than 24 months, STCG will be taxed at your income slab rate. Invested before 1 April 2023 and held for more than 24 months, LTCG will be taxed at 12.5%. Invested after 1 April 2023, capital gains will be taxed at your income slab rate. Dividends will always be taxed at slab rate. I",
       "risk_level": "Moderate Risk",
       "benchmark": "S&P BSE",
-      "scraped_at": "2026-06-20T08:04:20Z"
+      "scraped_at": "2026-06-21T08:47:44Z"
     },
     {
       "fund_id": "hdfc-gold-etf-fund-of-fund-direct-plan-growth-5359",
@@ -196,10 +196,10 @@
       "equity_pct": "N/A",
       "debt_cash_pct": "1.5%",
       "market_cap_split": "N/A",
-      "top_holdings": "Overview About FAQs Home > Mutual funds > HDFC Gold ETF Fund of Fund HDFC Gold ETF Fund of Fund Hybrid | HDFC Mutual Fund | Sector - Precious Metals Get the latest NAV of HDFC Gold ETF Fund of Fund. View historical returns compared to its benchmark and category average. Know which stocks and sectors the fund is investing in. Get an estimate of returns from the SIP and lump sum returns calculator. View detailed holding analysis and peer comparison. Get INDmoney ranking of the fund. ₹45.19 ▼-1.8% 1D NAV as on 19 Jun 2026 11.02% /per year Since Inception Invest Now Absolute Gain% ▲ ▼ This fund ​₹45.2 +308.67% Gold Price ​14575.0 +354.99% 19-06-2026​NAV ₹45.19​​This fund 308.59%​Gold Price 354.99% 1M 3M 6M 1Y 3Y 5Y MAX 136456 people have invested ₹ 29.2Cr in HDFC Gold ETF Fund of Fund in the l",
+      "top_holdings": "Overview About FAQs Home > Mutual funds > HDFC Gold ETF Fund of Fund HDFC Gold ETF Fund of Fund Hybrid | HDFC Mutual Fund | Sector - Precious Metals Get the latest NAV of HDFC Gold ETF Fund of Fund. View historical returns compared to its benchmark and category average. Know which stocks and sectors the fund is investing in. Get an estimate of returns from the SIP and lump sum returns calculator. View detailed holding analysis and peer comparison. Get INDmoney ranking of the fund. ₹45.19 ▼-1.8% 1D NAV as on 19 Jun 2026 11.02% /per year Since Inception Invest Now Absolute Gain% ▲ ▼ This fund ​₹45.2 +308.67% Gold Price ​14600.9 +355.8% 20-06-2026​NAV ₹45.19​​This fund 308.59%​Gold Price 355.8% 1M 3M 6M 1Y 3Y 5Y MAX 138340 people have invested ₹ 29.6Cr in HDFC Gold ETF Fund of Fund in the las",
       "risk_level": "High Risk",
       "benchmark": "S&P BSE",
-      "scraped_at": "2026-06-20T08:04:22Z"
+      "scraped_at": "2026-06-21T08:47:46Z"
     },
     {
       "fund_id": "hdfc-hybrid-equity-fund-direct-growth-option-4103",
@@ -224,7 +224,7 @@
       "top_holdings": "ICICI Bank Ltd(6.71%), HDFC Bank Ltd(6.42%), Reliance Industries Ltd(4.46%)",
       "risk_level": "Very High Risk",
       "benchmark": "Nifty 50 TR INR",
-      "scraped_at": "2026-06-20T08:04:24Z"
+      "scraped_at": "2026-06-21T08:47:48Z"
     },
     {
       "fund_id": "hdfc-equity-savings-fund-direct-plan-growth-option-4569",
@@ -249,7 +249,7 @@
       "top_holdings": "HDFC Bank Ltd(7.11%), Reliance Industries Ltd(5.71%), ICICI Bank Ltd(5.1%)",
       "risk_level": "High risk",
       "benchmark": "S&P BSE",
-      "scraped_at": "2026-06-20T08:04:27Z"
+      "scraped_at": "2026-06-21T08:47:50Z"
     }
   ]
 }
