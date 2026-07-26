@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 # Official source for factual fund data (used in restricted responses)
 INDMONEY_BASE = "https://www.indmoney.com/mutual-funds"
 
+# Fixed educational link for advisory-refusal redirects (always this exact URL)
+AMFI_FUND_SELECTION_URL = "https://www.mutualfundssahihai.com/en/how-do-i-know-which-fund-right-me"
+
 SYSTEM_PROMPT = """You are a factual assistant for INDmoney mutual fund data. You answer only factual questions about the 10 listed funds (NAV, AUM, expense ratio, returns, holdings, risk, benchmark, etc.) using ONLY the context provided below.
 
 Rules:
@@ -25,6 +28,17 @@ Rules:
 - Do NOT compare funds for "best" or "should I invest".
 - Keep answers concise and factual. Include the fund name when citing a value.
 - Do not include source links or timestamps in your answer text; they will be added separately."""
+
+ADVISORY_REFUSAL_SYSTEM_PROMPT = f"""You respond when a user asks for investment advice, a fund recommendation, an opinion, which fund to pick or buy, personalized suitability, or a comparison meant to choose one fund over another.
+
+Your role is to share facts about the 10 listed HDFC funds on INDmoney, not recommendations on what to buy.
+
+Response rules (follow every time; vary wording naturally across replies):
+- Acknowledge the question is outside your scope in a warm, conversational tone. Avoid compliance-style phrasing such as "I cannot offer investment advice" or "I am not authorized to provide recommendations."
+- Redirect the user to this exact educational link (always use this URL verbatim): {AMFI_FUND_SELECTION_URL}
+- Close by inviting a factual follow-up about any of the 10 funds (e.g. expense ratio, AUM, exit load, riskometer, NAV, returns, holdings).
+- Keep the entire response to 2-3 sentences.
+- Do not answer the advisory question, compare funds to recommend one, or include INDmoney source links or data timestamps in your text."""
 
 
 def build_messages(query: str, context_text: str, source_url: str, last_data_update: str) -> list:
@@ -75,18 +89,43 @@ def contains_sensitive_info(query: str) -> bool:
     return False
 
 
+def build_advisory_refusal_messages(query: str) -> list:
+    """Build system + user messages for Groq to generate an advisory-refusal redirect."""
+    user_content = f"""User question: {query}
+
+Write a 2-3 sentence redirect response following your rules."""
+    return [
+        {"role": "system", "content": ADVISORY_REFUSAL_SYSTEM_PROMPT},
+        {"role": "user", "content": user_content},
+    ]
+
+
+def generate_advisory_refusal(query: str) -> str:
+    """Generate a warm advisory-refusal redirect via Groq, with a structured fallback."""
+    reply = chat_completion(build_advisory_refusal_messages(query), temperature=0.5, max_tokens=256)
+    if reply:
+        return reply
+    return (
+        "That's outside what I can help with: I share facts about these funds, not recommendations on what to buy. "
+        f"For guidance on picking a fund that fits your goals, AMFI has a good primer: {AMFI_FUND_SELECTION_URL}. "
+        "Happy to tell you the expense ratio, AUM, exit load, or riskometer for any fund on the list, though."
+    )
+
+
 def is_likely_advisory(query: str) -> bool:
-    """True if query asks for opinion, advice, or which fund to invest in."""
+    """True if query asks for opinion, advice, recommendation, or which fund to invest in."""
     q = query.lower().strip()
     advisory_phrases = (
         "should i invest",
         "should i buy",
         "should i sell",
         "which fund should",
+        "which fund is best",
         "best fund",
         "recommend",
         "advice",
         "which one to choose",
+        "which one should",
         "better to invest",
         "good for me",
         "suit my",
@@ -94,6 +133,14 @@ def is_likely_advisory(query: str) -> bool:
         "what do you think",
         "opinion on",
         "is it good to invest",
+        "worth investing",
+        "worth buying",
+        "pick a fund",
+        "choose a fund",
+        "which to invest",
+        "tell me which fund",
+        "help me choose",
+        "help me pick",
     )
     return any(p in q for p in advisory_phrases)
 
@@ -164,19 +211,10 @@ def chat(
             rejected=True,
         )
 
-    # Opinion-based or advisory questions
-    if is_likely_advisory(query):
+    # Opinion-based, advisory, or pick-one comparison questions
+    if is_likely_advisory(query) or is_comparison_or_recommendation(query):
         return _restricted_response(
-            "I provide factual information only and cannot offer investment advice or personal recommendations. If you’d like, you can ask about specific data points for any of the listed funds—for example NAV, AUM, expense ratio, or returns—and I’ll answer from the available data. You can also refer to the official source link below for the latest information.",
-            source_url,
-            last_data_update,
-            rejected=True,
-        )
-
-    # Performance comparisons, return calculations, or recommendations
-    if is_comparison_or_recommendation(query):
-        return _restricted_response(
-            "I don’t compute or compare returns or recommend funds. For performance comparisons and accurate figures, please use the official factsheet or the source link provided below. I can still help with factual questions about a specific fund’s NAV, AUM, expense ratio, or other published data.",
+            generate_advisory_refusal(query),
             source_url,
             last_data_update,
             rejected=True,
