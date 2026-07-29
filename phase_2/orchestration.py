@@ -8,7 +8,10 @@ import logging
 import re
 from typing import Optional
 
+from phase_0.source_registry import load_registry
+from phase_1.config import REGISTRY_PATH
 from phase_1.retriever import Retriever
+from phase_2.fund_detection import detect_funds_in_query
 from phase_2.groq_client import chat_completion
 from phase_2.config import RAG_TOP_K
 
@@ -164,6 +167,15 @@ def is_comparison_or_recommendation(query: str) -> bool:
     return any(p in q for p in comparison_phrases)
 
 
+def _get_last_data_update() -> str:
+    """Load last data update timestamp from the source registry without retrieval."""
+    try:
+        registry = load_registry(REGISTRY_PATH)
+        return registry.last_data_update or ""
+    except Exception:
+        return ""
+
+
 def _restricted_response(
     message: str,
     source_url: str,
@@ -197,6 +209,26 @@ def chat(
     retriever = retriever or Retriever()
     k = top_k or RAG_TOP_K
     fund_id_clean = (fund_id or "").strip() or None
+
+    # "All funds" mode: require a fund name in the query before retrieval (factual queries only)
+    if fund_id_clean is None:
+        detected_fund_ids = detect_funds_in_query(query)
+        is_restricted = (
+            contains_sensitive_info(query)
+            or is_likely_advisory(query)
+            or is_comparison_or_recommendation(query)
+        )
+        if len(detected_fund_ids) == 0 and not is_restricted:
+            return {
+                "message": "Which fund would you like to know about?",
+                "source_url": "",
+                "last_data_update": _get_last_data_update(),
+                "rejected": False,
+                "needs_fund_clarification": True,
+            }
+        if len(detected_fund_ids) == 1:
+            fund_id_clean = detected_fund_ids[0]
+
     retrieved = retriever.retrieve(query=query, top_k=k, fund_id=fund_id_clean)
     source_url = retrieved.get("source_url", "")
     last_data_update = retrieved.get("last_data_update", "")
