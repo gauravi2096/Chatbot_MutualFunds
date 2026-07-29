@@ -34,17 +34,10 @@ from phase_0.source_registry import load_registry
 from phase_1.config import REGISTRY_PATH
 from phase_2.orchestration import chat
 
-# Template cards (Part 2): category prompts with no fund named in the text
-SUGGESTION_CARDS = [
-    ("NAV & AUM", "Get latest NAV and fund size for any of the 10 funds.", "What is the NAV and AUM?"),
-    ("Expense & Returns", "Expense ratio and 1Y/3Y/5Y returns.", "What is the expense ratio and 1Y returns?"),
-    ("Holdings & Risk", "Top holdings, risk level, and benchmark.", "What are the top holdings and risk level?"),
-]
-
-# Welcome quick-reply examples (Part 1): no fund named; fund detection applies on click
+# Welcome quick-reply examples (Part 1): single consolidated set of 3 starter prompts
 EXAMPLE_QUESTIONS = [
+    "What is the NAV and AUM?",
     "What's the expense ratio?",
-    "What's the risk level?",
     "Compare expense ratios of two funds",
 ]
 
@@ -92,34 +85,11 @@ section[data-testid="stSidebar"] button[kind="primary"] {
 
 /* Main content: center chat container and limit width so messages don't stretch full page */
 .block-container {
-    padding-top: 2rem !important;
+    padding-top: 1.5rem !important;
     padding-bottom: 1rem;
     max-width: 680px !important;
     margin-left: auto !important;
     margin-right: auto !important;
-}
-
-/* Starter cards: white, border, rounded */
-.suggestion-card {
-    height: 100%;
-    min-height: 120px;
-}
-.suggestion-card button {
-    width: 100%;
-    height: 100%;
-    min-height: 120px;
-    text-align: left;
-    background: #FFFFFF !important;
-    border-radius: 16px;
-    border: 1px solid #E2E8F0;
-    padding: 1rem;
-    box-shadow: none;
-    color: #0f172a !important;
-}
-.suggestion-card button:hover {
-    background: #F8FAFC !important;
-    border-color: #84CC16;
-    color: #0f172a !important;
 }
 
 /* Example question buttons on welcome screen */
@@ -129,16 +99,16 @@ section[data-testid="stSidebar"] button[kind="primary"] {
 .example-card button {
     width: 100%;
     height: 100%;
-    min-height: 70px;
+    min-height: 64px;
     text-align: center;
     background: #FFFFFF !important;
     border-radius: 12px;
     border: 1px solid #E2E8F0;
-    padding: 0.75rem 0.5rem;
+    padding: 0.6rem 0.5rem;
     box-shadow: none;
     color: #0f172a !important;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
 }
 .example-card button:hover {
     background: #F8FAFC !important;
@@ -148,7 +118,7 @@ section[data-testid="stSidebar"] button[kind="primary"] {
 
 /* Chat messages: improved spacing between messages; reduced padding inside bubbles */
 div[data-testid="stChatMessage"] {
-    margin-bottom: 1.5rem !important;
+    margin-bottom: 1.25rem !important;
 }
 /* Hide only the avatar/icon elements */
 div[data-testid="stChatMessage"] [data-testid="stImage"],
@@ -254,22 +224,22 @@ button[kind="primary"]:hover, div[data-testid="stChatInput"] button:hover {
 
 /* Disclaimer below input */
 .disclaimer {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
     border-top: 1px solid #E2E8F0;
     color: #64748b;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
 }
 
-/* Welcome section: centered */
+/* Welcome section: centered, tight spacing */
 .welcome-section {
     text-align: center;
-    margin: 1.5rem 0 2rem 0;
+    margin: 1rem 0 1.25rem 0;
 }
 .welcome-section h4 {
     color: #0f172a;
-    margin-bottom: 0.5rem;
-    font-size: 1.15rem;
+    margin-bottom: 0.4rem;
+    font-size: 1.1rem;
     font-weight: 600;
 }
 </style>
@@ -419,18 +389,19 @@ def main():
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("")  # spacing
-
     # ----- Welcome screen OR chat view -----
     if not st.session_state.messages:
-        # Welcome message with bot identity "Fin" and upfront facts-only disclaimer
-        st.markdown('<div class="welcome-section">', unsafe_allow_html=True)
-        st.markdown("#### Hi, I'm Fin — I help you check facts on 10 HDFC mutual funds. Pick a fund or tap a question below to get started.")
-        st.markdown("<p style='font-size:0.875rem; color:#64748B; font-weight:500; margin-top:0.5rem;'>Facts-only. No investment advice.</p>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        # Welcome message introducing Fin + single instance of facts-only disclaimer
+        st.markdown(
+            '<div class="welcome-section">'
+            '<h4>Hi, I\'m Fin — I help you check facts on 10 HDFC mutual funds. Pick a fund or tap a question below to get started.</h4>'
+            '<p style="font-size:0.875rem; color:#64748B; font-weight:500; margin-top:0.4rem; margin-bottom:0;">Facts-only. No investment advice.</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
-        # 3 tappable example questions as quick-reply buttons (Part 1 requirement)
-        st.markdown("<p style='font-size:0.9rem; font-weight:600; color:#475569; margin-bottom:0.5rem;'>Example questions:</p>", unsafe_allow_html=True)
+        # Single consolidated set of 3 tappable starter prompt buttons
+        st.markdown("<p style='font-size:0.875rem; font-weight:600; color:#475569; margin-bottom:0.4rem;'>Example questions:</p>", unsafe_allow_html=True)
         q_cols = st.columns(3)
         for q_text, col in zip(EXAMPLE_QUESTIONS, q_cols):
             with col:
@@ -441,23 +412,6 @@ def main():
                     use_container_width=True,
                 ):
                     append_user_then_pending(q_text, selected_fund_id)
-                    st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # Pre-existing template cards (Part 2 requirement: also route through fund detection)
-        st.markdown("<p style='font-size:0.9rem; font-weight:600; color:#475569; margin-bottom:0.5rem;'>Explore by topic:</p>", unsafe_allow_html=True)
-        cols = st.columns(3)
-        for (title, desc, prompt), col in zip(SUGGESTION_CARDS, cols):
-            with col:
-                st.markdown('<div class="suggestion-card">', unsafe_allow_html=True)
-                if st.button(
-                    f"**{title}**\n\n{desc}",
-                    key=f"suggest_{title.replace(' ', '_')}",
-                    use_container_width=True,
-                ):
-                    append_user_then_pending(prompt, selected_fund_id)
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
@@ -534,7 +488,7 @@ def main():
 
     # ----- Disclaimer below the text input -----
     st.markdown(
-        '<p class="disclaimer">INDmoney Fund Chat is for factual information only. It does not provide investment advice. Check important information on the source link.</p>',
+        '<p class="disclaimer">INDmoney Fund Chat is for factual information only. Check important information on the source link.</p>',
         unsafe_allow_html=True,
     )
 
