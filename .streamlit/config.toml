@@ -9,11 +9,11 @@ enableXsrfProtection = true
 [browser]
 gatherUsageStats = false
 
-# Light mode default; app colors
+# Light mode default; "cool trust" app colors (slate/navy + teal accent)
 [theme]
 base = "light"
-primaryColor = "#84CC16"
-backgroundColor = "#F8FAFC"
+primaryColor = "#0D9488"
+backgroundColor = "#EEF2F7"
 secondaryBackgroundColor = "#FFFFFF"
 textColor = "#0f172a"
 font = "sans serif"
