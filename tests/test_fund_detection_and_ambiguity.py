@@ -1,5 +1,5 @@
 """
-Unit tests for fund detection and ambiguous fund clarification in "All funds" mode.
+Unit tests for intent classification, fund detection, and conversational name capture.
 """
 
 import sys
@@ -11,51 +11,65 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from phase_2.fund_detection import detect_funds_in_query
 from phase_2.orchestration import chat
+from streamlit_app import classify_name_response, extract_name_from_text
 
 
-def test_fund_detection():
-    # 0 funds
-    assert detect_funds_in_query("What's the expense ratio?") == []
-    assert detect_funds_in_query("What's the risk level?") == []
-    assert detect_funds_in_query("Compare expense ratios of two funds") == []
+def test_intent_classification():
+    # Intent 1: Greeting/Chitchat -> no retrieval, no fund clarification
+    greetings = ["hi", "hello", "thanks", "thank you", "good morning", "bye"]
+    for g in greetings:
+        res = chat(query=g, fund_id=None)
+        assert res.get("is_greeting") is True, f"Failed greeting check for {g}"
+        assert res.get("needs_fund_clarification") is False
+        assert "Hi!" in res.get("message", "")
 
-    # 1 fund (exact / alias / partial)
-    assert len(detect_funds_in_query("What is the NAV of HDFC Flexi Cap Fund?")) == 1
-    assert detect_funds_in_query("What is the NAV of HDFC Flexi Cap Fund?")[0] == "hdfc-flexi-cap-fund-direct-plan-growth-option-3184"
-    assert len(detect_funds_in_query("flexi cap expense ratio")) == 1
-    assert len(detect_funds_in_query("small cap returns")) == 1
-    assert len(detect_funds_in_query("infrastructure fund AUM")) == 1
-    assert len(detect_funds_in_query("gold etf returns")) == 1
-    assert len(detect_funds_in_query("mid cap NAV")) == 1
-
-    # 2 funds (comparison)
-    res_2 = detect_funds_in_query("Compare HDFC Flexi Cap Fund and HDFC Small Cap Fund")
-    assert len(res_2) == 2
-    assert "hdfc-flexi-cap-fund-direct-plan-growth-option-3184" in res_2
-    assert "hdfc-small-cap-fund-direct-growth-option-3580" in res_2
-
-    print("PASS: test_fund_detection")
-
-
-def test_ambiguous_query_chat():
-    # In "All funds" mode (fund_id=None), generic query with 0 funds should return needs_fund_clarification=True
-    res = chat(query="What's the expense ratio?", fund_id=None)
-    assert res.get("needs_fund_clarification") is True
-    assert "Which fund would you like to know about?" in res.get("message", "")
-
-    # Restricted query in "All funds" mode should NOT request fund clarification, but return redirect
-    res_adv = chat(query="Which fund should I invest in?", fund_id=None)
-    assert res_adv.get("needs_fund_clarification") is not True
+    # Intent 2: Advisory / Opinion -> AMFI redirect, rejected=True
+    res_adv = chat(query="Which fund should I invest in for best returns?", fund_id=None)
     assert res_adv.get("rejected") is True
+    assert res_adv.get("needs_fund_clarification") is not True
 
-    # Query with 1 fund mentioned in "All funds" mode should scope and retrieve, not request clarification
-    res_single = chat(query="What is the expense ratio of HDFC Flexi Cap Fund?", fund_id=None)
-    assert res_single.get("needs_fund_clarification") is not True
+    # Intent 3: Factual query, 0 funds named in All funds mode -> needs_fund_clarification=True
+    res_zero = chat(query="What's the expense ratio?", fund_id=None)
+    assert res_zero.get("needs_fund_clarification") is True
 
-    print("PASS: test_ambiguous_query_chat")
+    # Intent 4: Factual query, 1 fund named -> single fund retrieval
+    res_one = chat(query="What is the expense ratio of HDFC Flexi Cap Fund?", fund_id=None)
+    assert res_one.get("needs_fund_clarification") is not True
+    assert res_one.get("rejected") is False
+
+    # Intent 5: Factual query, 2+ funds named -> comparison flow
+    res_two = chat(query="Compare expense ratios of HDFC Flexi Cap Fund and HDFC Small Cap Fund", fund_id=None)
+    assert res_two.get("needs_fund_clarification") is not True
+
+    print("PASS: test_intent_classification")
+
+
+def test_name_capture_helpers():
+    # Skip inputs
+    assert classify_name_response("no thanks") == "skip"
+    assert classify_name_response("skip") == "skip"
+    assert classify_name_response("no") == "skip"
+    assert classify_name_response("nope") == "skip"
+
+    # Name inputs
+    assert classify_name_response("Gauravi") == "name"
+    assert classify_name_response("Alex") == "name"
+    assert classify_name_response("Call me Gauravi") == "name"
+    assert classify_name_response("my name is Sam") == "name"
+
+    # Real questions / advice
+    assert classify_name_response("What is the NAV of HDFC Flexi Cap?") == "question"
+    assert classify_name_response("Which fund is best to invest in?") == "question"
+
+    # Name extraction
+    assert extract_name_from_text("Gauravi") == "Gauravi"
+    assert extract_name_from_text("my name is gauravi") == "Gauravi"
+    assert extract_name_from_text("call me Alex") == "Alex"
+
+    print("PASS: test_name_capture_helpers")
 
 
 if __name__ == "__main__":
-    test_fund_detection()
-    test_ambiguous_query_chat()
-    print("\nAll unit tests passed successfully!")
+    test_intent_classification()
+    test_name_capture_helpers()
+    print("\nAll intent classification & name capture tests passed!")

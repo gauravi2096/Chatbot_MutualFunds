@@ -115,6 +115,36 @@ def generate_advisory_refusal(query: str) -> str:
     )
 
 
+def is_greeting_or_chitchat(query: str) -> bool:
+    """Return True if query is a general greeting or chitchat (and not a financial/fund data query)."""
+    if not query or not query.strip():
+        return False
+
+    q_clean = query.strip().lower().rstrip("!.?")
+
+    greeting_exact = {
+        "hi", "hello", "hey", "hi there", "hello there", "hey there",
+        "good morning", "good afternoon", "good evening",
+        "thanks", "thank you", "thanks!", "bye", "goodbye",
+        "cool", "ok", "okay", "great", "awesome", "help",
+        "who are you", "what can you do"
+    }
+    if q_clean in greeting_exact:
+        return True
+
+    greeting_prefixes = ("hi ", "hello ", "hey ", "good morning ", "good afternoon ", "good evening ")
+    financial_terms = (
+        "nav", "aum", "expense", "ratio", "risk", "return", "cagr",
+        "holding", "benchmark", "fund", "hdfc", "invest", "buy", "sell",
+        "compare", "performance", "yield"
+    )
+    if any(q_clean.startswith(prefix) for prefix in greeting_prefixes):
+        if not any(term in q_clean for term in financial_terms):
+            return True
+
+    return False
+
+
 def is_likely_advisory(query: str) -> bool:
     """True if query asks for opinion, advice, recommendation, or which fund to invest in."""
     q = query.lower().strip()
@@ -199,26 +229,50 @@ def chat(
     fund_id: Optional[str] = None,
 ) -> dict:
     """
-    Run RAG + Groq pipeline. Returns dict with:
-      - message: assistant reply text (factual only)
-      - source_url: one clickable source link (INDmoney fund page)
-      - last_data_update: timestamp (date + 12h am/pm)
-      - rejected: True if query was treated as restricted (advisory, sensitive, comparison)
-    If fund_id is set, retrieval is scoped to that fund so answers refer to it.
+    Run RAG + Groq pipeline with Intent Classification running FIRST:
+    1. Greeting / Chitchat -> friendly conversational reply, no retrieval.
+    2. Sensitive info -> refusal response.
+    3. Advisory / Opinion -> AMFI redirect refusal response.
+    4. Factual query (0 funds named in "All funds" mode) -> request fund clarification.
+    5. Factual query (1 or 2+ funds named) -> RAG retrieval + factual answer.
     """
     retriever = retriever or Retriever()
     k = top_k or RAG_TOP_K
     fund_id_clean = (fund_id or "").strip() or None
 
-    # "All funds" mode: require a fund name in the query before retrieval (factual queries only)
+    # Intent 1: Greeting / Chitchat
+    if is_greeting_or_chitchat(query):
+        return {
+            "message": "Hi! Ask me about any of the 10 HDFC funds — expense ratio, NAV, risk level, and more.",
+            "source_url": "",
+            "last_data_update": _get_last_data_update(),
+            "rejected": False,
+            "is_greeting": True,
+            "needs_fund_clarification": False,
+        }
+
+    # Intent 2A: Sensitive personal/financial information
+    if contains_sensitive_info(query):
+        return _restricted_response(
+            "Thank you for reaching out. This chatbot cannot accept, store, or process any personal or financial information such as PAN, Aadhaar, account numbers, OTPs, email addresses, or phone numbers. Please do not share such details here. For factual information about HDFC mutual funds (e.g. NAV, AUM, expense ratio, or returns), feel free to ask a specific question—I’ll be glad to help with that.",
+            "",
+            _get_last_data_update(),
+            rejected=True,
+        )
+
+    # Intent 2B: Advisory / Opinion-seeking query
+    if is_likely_advisory(query) or is_comparison_or_recommendation(query):
+        return _restricted_response(
+            generate_advisory_refusal(query),
+            "",
+            _get_last_data_update(),
+            rejected=True,
+        )
+
+    # Intent 3 / 4 / 5: Factual queries in "All funds" mode
     if fund_id_clean is None:
         detected_fund_ids = detect_funds_in_query(query)
-        is_restricted = (
-            contains_sensitive_info(query)
-            or is_likely_advisory(query)
-            or is_comparison_or_recommendation(query)
-        )
-        if len(detected_fund_ids) == 0 and not is_restricted:
+        if len(detected_fund_ids) == 0:
             return {
                 "message": "Which fund would you like to know about?",
                 "source_url": "",
@@ -233,24 +287,6 @@ def chat(
     source_url = retrieved.get("source_url", "")
     last_data_update = retrieved.get("last_data_update", "")
     chunks = retrieved.get("chunks", [])
-
-    # Sensitive personal/financial information: do not accept or process
-    if contains_sensitive_info(query):
-        return _restricted_response(
-            "Thank you for reaching out. This chatbot cannot accept, store, or process any personal or financial information such as PAN, Aadhaar, account numbers, OTPs, email addresses, or phone numbers. Please do not share such details here. For factual information about HDFC mutual funds (e.g. NAV, AUM, expense ratio, or returns), feel free to ask a specific question—I’ll be glad to help with that.",
-            source_url,
-            last_data_update,
-            rejected=True,
-        )
-
-    # Opinion-based, advisory, or pick-one comparison questions
-    if is_likely_advisory(query) or is_comparison_or_recommendation(query):
-        return _restricted_response(
-            generate_advisory_refusal(query),
-            source_url,
-            last_data_update,
-            rejected=True,
-        )
 
     context_text = "\n\n---\n\n".join(c.get("text", "") for c in chunks if c.get("text"))
     if not context_text.strip():

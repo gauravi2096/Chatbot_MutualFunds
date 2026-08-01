@@ -10,6 +10,7 @@ the data pipeline (phase_1) or scheduler (phase_4).
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Ensure project root is on path when run from repo root (e.g. Streamlit Cloud)
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -32,19 +33,13 @@ if _env_file.is_file():
 import streamlit as st
 from phase_0.source_registry import load_registry
 from phase_1.config import REGISTRY_PATH
+from phase_2.fund_detection import detect_funds_in_query
 from phase_2.orchestration import chat
 
-# Template cards (Part 2): category prompts with no fund named in the text
-SUGGESTION_CARDS = [
-    ("NAV & AUM", "Get latest NAV and fund size for any of the 10 funds.", "What is the NAV and AUM?"),
-    ("Expense & Returns", "Expense ratio and 1Y/3Y/5Y returns.", "What is the expense ratio and 1Y returns?"),
-    ("Holdings & Risk", "Top holdings, risk level, and benchmark.", "What are the top holdings and risk level?"),
-]
-
-# Welcome quick-reply examples (Part 1): no fund named; fund detection applies on click
+# Welcome quick-reply examples: single consolidated set of 3 starter prompts
 EXAMPLE_QUESTIONS = [
+    "What is the NAV and AUM?",
     "What's the expense ratio?",
-    "What's the risk level?",
     "Compare expense ratios of two funds",
 ]
 
@@ -92,34 +87,11 @@ section[data-testid="stSidebar"] button[kind="primary"] {
 
 /* Main content: center chat container and limit width so messages don't stretch full page */
 .block-container {
-    padding-top: 2rem !important;
+    padding-top: 1.5rem !important;
     padding-bottom: 1rem;
     max-width: 680px !important;
     margin-left: auto !important;
     margin-right: auto !important;
-}
-
-/* Starter cards: white, border, rounded */
-.suggestion-card {
-    height: 100%;
-    min-height: 120px;
-}
-.suggestion-card button {
-    width: 100%;
-    height: 100%;
-    min-height: 120px;
-    text-align: left;
-    background: #FFFFFF !important;
-    border-radius: 16px;
-    border: 1px solid #E2E8F0;
-    padding: 1rem;
-    box-shadow: none;
-    color: #0f172a !important;
-}
-.suggestion-card button:hover {
-    background: #F8FAFC !important;
-    border-color: #84CC16;
-    color: #0f172a !important;
 }
 
 /* Example question buttons on welcome screen */
@@ -129,16 +101,16 @@ section[data-testid="stSidebar"] button[kind="primary"] {
 .example-card button {
     width: 100%;
     height: 100%;
-    min-height: 70px;
+    min-height: 64px;
     text-align: center;
     background: #FFFFFF !important;
     border-radius: 12px;
     border: 1px solid #E2E8F0;
-    padding: 0.75rem 0.5rem;
+    padding: 0.6rem 0.5rem;
     box-shadow: none;
     color: #0f172a !important;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
 }
 .example-card button:hover {
     background: #F8FAFC !important;
@@ -148,7 +120,7 @@ section[data-testid="stSidebar"] button[kind="primary"] {
 
 /* Chat messages: improved spacing between messages; reduced padding inside bubbles */
 div[data-testid="stChatMessage"] {
-    margin-bottom: 1.5rem !important;
+    margin-bottom: 1.25rem !important;
 }
 /* Hide only the avatar/icon elements */
 div[data-testid="stChatMessage"] [data-testid="stImage"],
@@ -254,29 +226,81 @@ button[kind="primary"]:hover, div[data-testid="stChatInput"] button:hover {
 
 /* Disclaimer below input */
 .disclaimer {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
     border-top: 1px solid #E2E8F0;
     color: #64748b;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
 }
 
-/* Welcome section: centered */
+/* Welcome section: centered, tight spacing */
 .welcome-section {
     text-align: center;
-    margin: 1.5rem 0 2rem 0;
+    margin: 1rem 0 1.25rem 0;
 }
 .welcome-section h4 {
     color: #0f172a;
-    margin-bottom: 0.5rem;
-    font-size: 1.15rem;
+    margin-bottom: 0.4rem;
+    font-size: 1.1rem;
     font-weight: 600;
 }
 </style>
 """
 
 
-def append_user_then_pending(prompt: str, selected_fund_id: str | None) -> None:
+def classify_name_response(prompt: str) -> str:
+    """
+    Classify user input when awaiting a name response.
+    Returns: 'skip', 'name', or 'question'.
+    """
+    p_clean = prompt.strip().lower()
+
+    # 1. Skip phrases
+    skip_phrases = (
+        "no", "skip", "no thanks", "no, thanks", "nope", "never mind",
+        "nevermind", "don't want", "dont want", "pass", "none", "nah",
+        "not now", "prefer not", "keep anonymous", "anonymous", "don't ask"
+    )
+    if p_clean in skip_phrases or any(p_clean == phrase for phrase in skip_phrases):
+        return "skip"
+
+    # 2. Real question / advisory / financial query check
+    if "?" in prompt:
+        return "question"
+
+    financial_keywords = (
+        "nav", "aum", "expense", "ratio", "risk", "return", "returns", "cagr",
+        "holding", "holdings", "benchmark", "exit load", "fund", "hdfc", "compare",
+        "invest", "investment", "buy", "sell", "best", "should", "recommend", "advice"
+    )
+    words = p_clean.split()
+    if any(kw in p_clean for kw in financial_keywords):
+        return "question"
+
+    if len(detect_funds_in_query(prompt)) > 0:
+        return "question"
+
+    if len(prompt) > 40 or len(words) > 5:
+        return "question"
+
+    # 3. Otherwise, treat as name
+    return "name"
+
+
+def extract_name_from_text(text: str) -> str:
+    """Extract clean name string from user input."""
+    t = text.strip()
+    t_lower = t.lower()
+    prefixes = ("my name is ", "call me ", "i am ", "i'm ", "it's ", "its ")
+    for prefix in prefixes:
+        if t_lower.startswith(prefix):
+            name = t[len(prefix):].strip().rstrip(".!")
+            if name:
+                return name.capitalize()
+    return t.strip().rstrip(".!").capitalize()
+
+
+def append_user_then_pending(prompt: str, selected_fund_id: Optional[str]) -> None:
     """Append user message and set pending query so we switch to chat view, then process on next run."""
     st.session_state.messages.append({"role": "user", "content": prompt, "source_url": None, "last_data_update": None})
     st.session_state.pending_query = (prompt, selected_fund_id)
@@ -296,6 +320,7 @@ def process_pending_response() -> bool:
         last_data_update = result.get("last_data_update", "")
         rejected = result.get("rejected", False)
         needs_fund_clarification = result.get("needs_fund_clarification", False)
+        is_greeting = result.get("is_greeting", False)
 
         st.session_state.messages.append({
             "role": "assistant",
@@ -304,6 +329,7 @@ def process_pending_response() -> bool:
             "last_data_update": last_data_update,
             "rejected": rejected,
             "needs_fund_clarification": needs_fund_clarification,
+            "is_greeting": is_greeting,
         })
 
         if needs_fund_clarification:
@@ -311,16 +337,26 @@ def process_pending_response() -> bool:
         else:
             st.session_state.pending_ambiguous_query = None
 
-        # Deferred name ask: trigger after the first successful factual answer
+        # Name capture turn: trigger conversational question after first successful factual answer
         if (
             not rejected
             and not needs_fund_clarification
+            and not is_greeting
             and not st.session_state.get("name_asked", False)
             and not st.session_state.get("name_skipped", False)
             and st.session_state.get("user_name") is None
         ):
             st.session_state.name_asked = True
-            st.session_state.show_name_prompt = True
+            st.session_state.awaiting_name = True
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": "Glad that helped! What should I call you, so I'm not just 'hey there' every time?",
+                "source_url": None,
+                "last_data_update": None,
+                "rejected": False,
+                "needs_fund_clarification": False,
+                "is_greeting": False,
+            })
 
     except Exception as e:
         st.session_state.messages.append({
@@ -330,6 +366,7 @@ def process_pending_response() -> bool:
             "last_data_update": None,
             "rejected": True,
             "needs_fund_clarification": False,
+            "is_greeting": False,
         })
     return True
 
@@ -357,8 +394,8 @@ def main():
         st.session_state.name_asked = False
     if "name_skipped" not in st.session_state:
         st.session_state.name_skipped = False
-    if "show_name_prompt" not in st.session_state:
-        st.session_state.show_name_prompt = False
+    if "awaiting_name" not in st.session_state:
+        st.session_state.awaiting_name = False
     if "pending_ambiguous_query" not in st.session_state:
         st.session_state.pending_ambiguous_query = None
 
@@ -415,22 +452,23 @@ def main():
                 st.session_state.messages = []
                 st.session_state.pending_query = None
                 st.session_state.pending_ambiguous_query = None
-                st.session_state.show_name_prompt = False
+                st.session_state.awaiting_name = False
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("")  # spacing
-
     # ----- Welcome screen OR chat view -----
     if not st.session_state.messages:
-        # Welcome message with bot identity "Fin" and upfront facts-only disclaimer
-        st.markdown('<div class="welcome-section">', unsafe_allow_html=True)
-        st.markdown("#### Hi, I'm Fin — I help you check facts on 10 HDFC mutual funds. Pick a fund or tap a question below to get started.")
-        st.markdown("<p style='font-size:0.875rem; color:#64748B; font-weight:500; margin-top:0.5rem;'>Facts-only. No investment advice.</p>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        # Welcome message introducing Fin + single instance of facts-only disclaimer
+        st.markdown(
+            '<div class="welcome-section">'
+            '<h4>Hi, I\'m Fin — I help you check facts on 10 HDFC mutual funds. Pick a fund or tap a question below to get started.</h4>'
+            '<p style="font-size:0.875rem; color:#64748B; font-weight:500; margin-top:0.4rem; margin-bottom:0;">Facts-only. No investment advice.</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
-        # 3 tappable example questions as quick-reply buttons (Part 1 requirement)
-        st.markdown("<p style='font-size:0.9rem; font-weight:600; color:#475569; margin-bottom:0.5rem;'>Example questions:</p>", unsafe_allow_html=True)
+        # Single consolidated set of 3 tappable starter prompt buttons
+        st.markdown("<p style='font-size:0.875rem; font-weight:600; color:#475569; margin-bottom:0.4rem;'>Example questions:</p>", unsafe_allow_html=True)
         q_cols = st.columns(3)
         for q_text, col in zip(EXAMPLE_QUESTIONS, q_cols):
             with col:
@@ -443,23 +481,6 @@ def main():
                     append_user_then_pending(q_text, selected_fund_id)
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # Pre-existing template cards (Part 2 requirement: also route through fund detection)
-        st.markdown("<p style='font-size:0.9rem; font-weight:600; color:#475569; margin-bottom:0.5rem;'>Explore by topic:</p>", unsafe_allow_html=True)
-        cols = st.columns(3)
-        for (title, desc, prompt), col in zip(SUGGESTION_CARDS, cols):
-            with col:
-                st.markdown('<div class="suggestion-card">', unsafe_allow_html=True)
-                if st.button(
-                    f"**{title}**\n\n{desc}",
-                    key=f"suggest_{title.replace(' ', '_')}",
-                    use_container_width=True,
-                ):
-                    append_user_then_pending(prompt, selected_fund_id)
-                    st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
     else:
         # Chat view: Streamlit sets aria-label on container so CSS can target user vs assistant
         for idx, msg in enumerate(st.session_state.messages):
@@ -470,7 +491,7 @@ def main():
                 if msg.get("last_data_update"):
                     st.caption(f"Data as of {msg['last_data_update']}")
 
-                # Part 2: Quick-reply buttons for 10 funds when clarification is required
+                # Quick-reply buttons for 10 funds when clarification is required
                 if msg.get("needs_fund_clarification") and idx == len(st.session_state.messages) - 1:
                     st.markdown("<p style='font-size:0.875rem; font-weight:600; color:#475569; margin-top:0.75rem; margin-bottom:0.35rem;'>Select a fund to check:</p>", unsafe_allow_html=True)
                     grid_cols = st.columns(2)
@@ -484,37 +505,15 @@ def main():
                             ):
                                 ambiguous_q = st.session_state.get("pending_ambiguous_query", "")
                                 st.session_state.pending_ambiguous_query = None
-                                target_query = f"{ambiguous_q} for {f['fund_name']}" if ambiguous_q else f["fund_name"]
-                                append_user_then_pending(target_query, f["fund_id"])
+                                st.session_state.messages.append({
+                                    "role": "user",
+                                    "content": f["fund_name"],
+                                    "source_url": None,
+                                    "last_data_update": None,
+                                })
+                                target_query = ambiguous_q if ambiguous_q else f["fund_name"]
+                                st.session_state.pending_query = (target_query, f["fund_id"])
                                 st.rerun()
-
-        # Part 1: Deferred Skippable Name Ask (shown once after first successful factual answer)
-        if st.session_state.get("show_name_prompt") and st.session_state.user_name is None and not st.session_state.name_skipped:
-            with st.chat_message("assistant", avatar=None):
-                st.markdown("Glad that helped! What should I call you, so I'm not just 'hey there' every time?")
-                col_in, col_save, col_skip = st.columns([3, 1, 1])
-                with col_in:
-                    name_val = st.text_input("Name", key="name_input_val", label_visibility="collapsed", placeholder="Enter your name...")
-                with col_save:
-                    if st.button("Save", key="save_name_btn", type="primary", use_container_width=True):
-                        if name_val and name_val.strip():
-                            name_clean = name_val.strip()
-                            st.session_state.user_name = name_clean
-                            st.session_state.show_name_prompt = False
-                            st.session_state.messages.append({
-                                "role": "assistant",
-                                "content": f"Nice to meet you, {name_clean}! What else can I look up for you?",
-                                "source_url": None,
-                                "last_data_update": None,
-                                "rejected": False,
-                                "needs_fund_clarification": False,
-                            })
-                            st.rerun()
-                with col_skip:
-                    if st.button("No thanks", key="skip_name_btn", type="secondary", use_container_width=True):
-                        st.session_state.name_skipped = True
-                        st.session_state.show_name_prompt = False
-                        st.rerun()
 
         # If we have a pending query, show assistant bubble with spinner then process and rerun
         if st.session_state.pending_query:
@@ -525,16 +524,54 @@ def main():
 
     # ----- Chat input (fixed at bottom in flow) -----
     if prompt := st.chat_input("Ask about the selected fund..."):
-        # If user typed a new query while name prompt was active, treat name ask as skipped
-        if st.session_state.get("show_name_prompt"):
-            st.session_state.name_skipped = True
-            st.session_state.show_name_prompt = False
-        append_user_then_pending(prompt, selected_fund_id)
-        st.rerun()
+        if st.session_state.get("awaiting_name"):
+            name_class = classify_name_response(prompt)
+            if name_class == "skip":
+                st.session_state.awaiting_name = False
+                st.session_state.name_skipped = True
+                st.session_state.messages.append({
+                    "role": "user",
+                    "content": prompt,
+                    "source_url": None,
+                    "last_data_update": None,
+                })
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": "No problem!",
+                    "source_url": None,
+                    "last_data_update": None,
+                })
+                st.rerun()
+            elif name_class == "name":
+                extracted = extract_name_from_text(prompt)
+                st.session_state.user_name = extracted
+                st.session_state.awaiting_name = False
+                st.session_state.messages.append({
+                    "role": "user",
+                    "content": prompt,
+                    "source_url": None,
+                    "last_data_update": None,
+                })
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": f"Nice to meet you, {extracted}!",
+                    "source_url": None,
+                    "last_data_update": None,
+                })
+                st.rerun()
+            else:
+                # Real fund query / advisory: skip name prompt silently and process actual query
+                st.session_state.awaiting_name = False
+                st.session_state.name_skipped = True
+                append_user_then_pending(prompt, selected_fund_id)
+                st.rerun()
+        else:
+            append_user_then_pending(prompt, selected_fund_id)
+            st.rerun()
 
     # ----- Disclaimer below the text input -----
     st.markdown(
-        '<p class="disclaimer">INDmoney Fund Chat is for factual information only. It does not provide investment advice. Check important information on the source link.</p>',
+        '<p class="disclaimer">INDmoney Fund Chat is for factual information only. Check important information on the source link.</p>',
         unsafe_allow_html=True,
     )
 
