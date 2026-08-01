@@ -36,213 +36,341 @@ from phase_1.config import REGISTRY_PATH
 from phase_2.fund_detection import detect_funds_in_query
 from phase_2.orchestration import chat
 
-# Welcome quick-reply examples: single consolidated set of 3 starter prompts
+# Welcome quick-reply examples: short card label + icon (display only) mapped to
+# the actual query text sent to chat() — routing/retrieval behavior is unchanged.
 EXAMPLE_QUESTIONS = [
-    "What is the NAV and AUM?",
-    "What's the expense ratio?",
-    "Compare expense ratios of two funds",
+    {"icon": "📊", "label": "NAV & AUM", "query": "What is the NAV and AUM?"},
+    {"icon": "💰", "label": "Expense ratio", "query": "What's the expense ratio?"},
+    {"icon": "⚖️", "label": "Compare funds", "query": "Compare expense ratios of two funds"},
 ]
 
-# Light theme and layout CSS
+# "Cool trust" theme: slate/navy + teal accent, off-white background.
 STYLES = """
 <style>
-/* App background */
-.stApp, [data-testid="stAppViewContainer"] {
-    background-color: #F8FAFC !important;
-    color: #0f172a;
+:root {
+    --bg-page: #EEF2F7;
+    --bg-card: #FFFFFF;
+    --bg-navy: #0F172A;
+    --bg-navy-elevated: #1E293B;
+    --bg-navy-hover: #263447;
+    --border-subtle: #E2E8F0;
+    --border-navy: #2C3B52;
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --text-oninavy: #E2E8F0;
+    --text-oninavy-muted: #93A3B8;
+    --accent-teal: #0D9488;
+    --accent-teal-hover: #0F766E;
+    --accent-teal-soft: #F0FDFA;
+    --accent-teal-ring: rgba(13, 148, 136, 0.30);
+    --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 14px rgba(15, 23, 42, 0.07);
 }
 
-/* Sidebar */
+/* App background */
+.stApp, [data-testid="stAppViewContainer"] {
+    background-color: var(--bg-page) !important;
+    color: var(--text-primary);
+}
+
+/* Sidebar: deep navy panel, off-white text, teal accent for selection */
 section[data-testid="stSidebar"] {
-    background-color: #F1F5F9 !important;
-    border-right: 1px solid #E2E8F0;
+    background-color: var(--bg-navy) !important;
+    border-right: 1px solid var(--border-navy);
+}
+section[data-testid="stSidebar"] .stMarkdown h2,
+section[data-testid="stSidebar"] .stMarkdown h3 {
+    color: #FFFFFF !important;
+    font-weight: 700;
 }
 section[data-testid="stSidebar"] .stMarkdown,
 section[data-testid="stSidebar"] label,
 section[data-testid="stSidebar"] p {
-    color: #0f172a !important;
+    color: var(--text-oninavy-muted) !important;
+}
+section[data-testid="stSidebar"] hr {
+    border-color: var(--border-navy) !important;
+}
+/* Button label text must win over the generic sidebar "p" muted-color rule above */
+section[data-testid="stSidebar"] button[kind="secondary"] p,
+section[data-testid="stSidebar"] button[kind="secondary"] div,
+section[data-testid="stSidebar"] button[kind="secondary"] span {
+    color: var(--text-oninavy) !important;
+}
+section[data-testid="stSidebar"] button[kind="secondary"]:hover p,
+section[data-testid="stSidebar"] button[kind="secondary"]:hover div,
+section[data-testid="stSidebar"] button[kind="secondary"]:hover span {
+    color: #FFFFFF !important;
+}
+section[data-testid="stSidebar"] button[kind="primary"] p,
+section[data-testid="stSidebar"] button[kind="primary"] div,
+section[data-testid="stSidebar"] button[kind="primary"] span {
+    color: #FFFFFF !important;
 }
 
-/* Fund list: clickable buttons, reduced padding, highlight selected (primary = green) */
+/* Fund list: clickable buttons restyled as navy cards; teal = selected */
 section[data-testid="stSidebar"] button {
-    margin-bottom: 2px !important;
-    padding: 0.4rem 0.75rem !important;
+    margin-bottom: 4px !important;
+    padding: 0.5rem 0.85rem !important;
     text-align: left !important;
-    border-radius: 8px;
-    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: border-color .15s ease, background-color .15s ease;
 }
 section[data-testid="stSidebar"] button[kind="secondary"] {
-    background: #FFFFFF !important;
-    color: #0f172a !important;
+    background: var(--bg-navy-elevated) !important;
+    color: var(--text-oninavy) !important;
+    border: 1px solid var(--border-navy) !important;
 }
 section[data-testid="stSidebar"] button[kind="secondary"]:hover {
-    border-color: #84CC16;
-    background: #F8FAFC !important;
+    border-color: var(--accent-teal) !important;
+    background: var(--bg-navy-hover) !important;
+    color: #FFFFFF !important;
 }
 section[data-testid="stSidebar"] button[kind="primary"] {
-    background: #84CC16 !important;
-    color: #0f172a !important;
-    border-color: #65a30d;
+    background: var(--accent-teal) !important;
+    color: #FFFFFF !important;
+    border: 1px solid var(--accent-teal-hover) !important;
+}
+section[data-testid="stSidebar"] button[kind="primary"]:hover {
+    background: var(--accent-teal-hover) !important;
 }
 
-/* Main content: center chat container and limit width so messages don't stretch full page */
+/* Main content: use the same full width as the docked chat input below it,
+   instead of a narrow centered column. padding-top clears Streamlit's fixed
+   ~60px header bar. */
 .block-container {
-    padding-top: 1.5rem !important;
+    padding-top: 4.5rem !important;
     padding-bottom: 1rem;
-    max-width: 680px !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
+    max-width: 100% !important;
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
+}
+div[data-testid="stChatInput"] {
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
 }
 
-/* Example question buttons on welcome screen */
-.example-card {
-    height: 100%;
+/* App title: single line */
+.app-title {
+    color: var(--text-primary);
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.3;
+    white-space: nowrap;
 }
-.example-card button {
-    width: 100%;
-    height: 100%;
-    min-height: 64px;
+
+/* Hero greeting on landing screen */
+.welcome-hero {
     text-align: center;
-    background: #FFFFFF !important;
-    border-radius: 12px;
-    border: 1px solid #E2E8F0;
-    padding: 0.6rem 0.5rem;
-    box-shadow: none;
-    color: #0f172a !important;
-    font-weight: 500;
-    font-size: 0.875rem;
+    margin: 1.75rem 0 1.5rem 0;
 }
-.example-card button:hover {
-    background: #F8FAFC !important;
-    border-color: #84CC16;
-    color: #0f172a !important;
+.welcome-hero .hero-line {
+    color: var(--text-primary);
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+}
+.welcome-hero .hero-line .accent {
+    color: var(--accent-teal);
 }
 
-/* Chat messages: improved spacing between messages; reduced padding inside bubbles */
-div[data-testid="stChatMessage"] {
-    margin-bottom: 1.25rem !important;
+/* Example cards: tight spacing right beneath the hero */
+.example-cards-spacer {
+    margin-top: 0.25rem;
 }
-/* Hide only the avatar/icon elements */
+
+/* Welcome screen: a fixed (not viewport-height-based) gap pushes the
+   disclaimer down from the cards. A vh-based min-height was tried here but
+   it under-counted Streamlit's real chrome on shorter windows, forcing a
+   page scrollbar and hiding the disclaimer behind the docked input — a
+   fixed gap can never do that. */
+.disclaimer.welcome-disclaimer {
+    margin-top: 2.5rem;
+}
+
+/* Example question cards: compact, icon + short text, tight spacing.
+   Streamlit renders each st.markdown/st.button call as a separate sibling -
+   wrapping them with raw '<div class="example-card">...</div>' markdown
+   calls does NOT nest the button inside that div, so a ".example-card
+   button" descendant selector never matches anything. The reliable hook is
+   the auto-generated "st-key-<key>" class Streamlit puts on the button's
+   own wrapper when it has a key= (all three cards' keys start with
+   "ex_q_"), matched here via an attribute-contains selector. */
+div[class*="st-key-ex_q_"] button {
+    min-height: 32px;
+    text-align: center;
+    background: var(--bg-card) !important;
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle) !important;
+    padding: 0.3rem 0.2rem !important;
+    box-shadow: var(--shadow-soft);
+    color: var(--text-primary) !important;
+    font-weight: 600;
+    font-size: 0.8rem;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+div[class*="st-key-ex_q_"] button:hover {
+    background: var(--accent-teal-soft) !important;
+    border-color: var(--accent-teal) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10);
+    transform: translateY(-1px);
+}
+
+/* Chat messages: improved spacing between messages */
+div[data-testid="stChatMessage"] {
+    margin-bottom: 1rem !important;
+}
+/* Hide the underlying avatar image/icon; we recolor the avatar shape itself below */
 div[data-testid="stChatMessage"] [data-testid="stImage"],
 div[data-testid="stChatMessage"] img,
 div[data-testid="stChatMessage"] svg,
 div[data-testid="stChatMessage"] .stChatAvatar {
     display: none !important;
 }
-
-/* Chat bubble content: no green background; reduced padding; subtle border */
-div[data-testid="stChatMessage"] div[data-testid="stChatMessageContent"] {
-    padding: 0.5rem 0.75rem !important;
-    border-radius: 12px;
-    border: 1px solid #E2E8F0;
+/* No avatar for the user's own messages (cleaner, matches right-aligned "sent" bubbles) */
+div[data-testid="stChatMessage"] [data-testid="stChatMessageAvatarUser"] {
+    display: none !important;
+}
+/* Small circular avatar for the assistant only, for a less boxy, more chat-app feel */
+div[data-testid="stChatMessage"] [data-testid="stChatMessageAvatarAssistant"] {
+    background-color: var(--accent-teal) !important;
+    border-radius: 50% !important;
 }
 
-/* User message: no green, right aligned - Streamlit sets aria-label="user" or "human" */
-div[data-testid="stChatMessage"][aria-label="user"],
-div[data-testid="stChatMessage"][aria-label="human"] {
+/* Chat bubble content: soft rounded pill, no hard border, distinguished by color only */
+div[data-testid="stChatMessage"] div[data-testid="stChatMessageContent"] {
+    padding: 0.65rem 1rem !important;
+    border-radius: 20px;
+    border: none !important;
+    box-shadow: var(--shadow-soft);
+}
+div[data-testid="stChatMessage"] a {
+    color: var(--accent-teal) !important;
+}
+div[data-testid="stChatMessage"] a:hover {
+    color: var(--accent-teal-hover) !important;
+}
+
+/* Role detection: this Streamlit version sets neither aria-label nor a stable
+   per-role class on stChatMessage, and each message is wrapped in its own
+   unique parent (so :nth-of-type(odd/even) always evaluates to "odd" for
+   every message). The one reliable, confirmed-working signal is which
+   avatar test-id the message contains, so both alignment and bubble color
+   key off that via :has(). */
+
+/* User message: teal-tinted pill, right aligned, no avatar */
+div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
     margin-left: auto !important;
     margin-right: 0 !important;
-    max-width: 85%;
+    max-width: min(85%, 640px);
 }
-div[data-testid="stChatMessage"][aria-label="user"] div[data-testid="stChatMessageContent"],
-div[data-testid="stChatMessage"][aria-label="human"] div[data-testid="stChatMessageContent"] {
-    background: #FFFFFF !important;
-    color: #0f172a !important;
+div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) div[data-testid="stChatMessageContent"] {
+    background: var(--accent-teal-soft) !important;
+    color: var(--text-primary) !important;
 }
 
-/* Assistant message: light grey, left aligned - Streamlit sets aria-label="assistant" or "ai" */
-div[data-testid="stChatMessage"][aria-label="assistant"],
-div[data-testid="stChatMessage"][aria-label="ai"] {
+/* Assistant message: white pill with a circular teal avatar, left aligned */
+div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) {
     margin-left: 0 !important;
     margin-right: auto !important;
-    max-width: 85%;
+    max-width: min(85%, 640px);
 }
-div[data-testid="stChatMessage"][aria-label="assistant"] div[data-testid="stChatMessageContent"],
-div[data-testid="stChatMessage"][aria-label="ai"] div[data-testid="stChatMessageContent"] {
-    background: #F1F5F9 !important;
-    color: #0f172a !important;
+div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) div[data-testid="stChatMessageContent"] {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
 }
-div[data-testid="stChatMessage"][aria-label="assistant"] div[data-testid="stChatMessageContent"] .stCaptionContainer,
-div[data-testid="stChatMessage"][aria-label="ai"] div[data-testid="stChatMessageContent"] .stCaptionContainer {
-    color: #475569 !important;
+div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) div[data-testid="stChatMessageContent"] .stCaptionContainer {
+    color: var(--text-secondary) !important;
 }
 
-/* Fallback when aria-label is not on container: odd = user, even = assistant (no green) */
-div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(odd) {
-    margin-left: auto !important;
-    max-width: 85%;
-}
-div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(odd) div[data-testid="stChatMessageContent"] {
-    background: #FFFFFF !important;
-    color: #0f172a !important;
-}
-div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(even) {
-    margin-right: auto !important;
-    max-width: 85%;
-}
-div[data-testid="stChatMessage"]:not([aria-label]):nth-of-type(even) div[data-testid="stChatMessageContent"] {
-    background: #F1F5F9 !important;
-    color: #0f172a !important;
+/* Bottom bar wrapper: Streamlit paints this its own off-white (#F8FAFC),
+   which reads as a visible seam against our page background - match it. */
+div[data-testid="stBottom"] > div {
+    background: var(--bg-page) !important;
 }
 
-/* Chat input: fixed at bottom, light theme */
+/* Chat input: fixed at bottom, pill-shaped, teal focus ring */
 div[data-testid="stChatInput"] {
-    border-top: 1px solid #E2E8F0;
-    background: #F8FAFC !important;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-page) !important;
+    padding-top: 0.5rem;
 }
 div[data-testid="stChatInput"] textarea {
-    background: #FFFFFF !important;
-    color: #0f172a !important;
-    border: 1px solid #E2E8F0;
-    border-radius: 12px;
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    border: 1.5px solid var(--border-subtle) !important;
+    border-radius: 26px !important;
+    padding: 0.9rem 1.35rem !important;
+    box-shadow: var(--shadow-soft);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+div[data-testid="stChatInput"] textarea:focus {
+    border-color: var(--accent-teal) !important;
+    box-shadow: 0 0 0 4px var(--accent-teal-ring) !important;
+    outline: none !important;
+}
+/* Vertically re-center the send button now that the pill textarea is taller;
+   Streamlit's default wrapper uses align-items:flex-end which no longer centers it */
+div[data-testid="stChatInput"] div:has(> button[data-testid="stChatInputSubmitButton"]) {
+    align-items: center !important;
 }
 
-/* Primary green send button */
-button[kind="primary"], div[data-testid="stChatInput"] button[kind="primary"] {
-    background: #84CC16 !important;
-    color: #0f172a !important;
+/* Primary teal buttons (e.g. selected fund in the sidebar) */
+button[kind="primary"] {
+    background: var(--accent-teal) !important;
+    color: #FFFFFF !important;
     border: none !important;
-    border-radius: 12px;
+    border-radius: 9999px;
 }
-button[kind="primary"]:hover, div[data-testid="stChatInput"] button:hover {
-    background: #65a30d !important;
-    color: #0f172a !important;
+button[kind="primary"]:hover {
+    background: var(--accent-teal-hover) !important;
+    color: #FFFFFF !important;
 }
 
-/* Reset Chat button: ensure fully visible, not cut off at top */
+/* Chat input send button: this is a plain button with no kind="primary"
+   attribute in this Streamlit version, so it needs its own rule rather than
+   inheriting from button[kind="primary"] above (which never matched it) */
+div[data-testid="stChatInput"] button[data-testid="stChatInputSubmitButton"] {
+    color: var(--accent-teal) !important;
+    background: transparent !important;
+    border-radius: 9999px !important;
+    transition: background-color .15s ease, color .15s ease;
+}
+div[data-testid="stChatInput"] button[data-testid="stChatInputSubmitButton"]:hover:not(:disabled) {
+    color: var(--accent-teal-hover) !important;
+    background: var(--accent-teal-soft) !important;
+}
+div[data-testid="stChatInput"] button[data-testid="stChatInputSubmitButton"]:disabled {
+    color: var(--text-secondary) !important;
+}
+
+/* Reset Chat button */
 .reset-button button {
     border-radius: 9999px;
-    border: 1px solid #E2E8F0;
-    background: #FFFFFF !important;
-    color: #0f172a !important;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
     margin-top: 0 !important;
     padding-top: 0.35rem !important;
     padding-bottom: 0.35rem !important;
 }
 .reset-button button:hover {
-    border-color: #84CC16;
-    color: #0f172a !important;
+    border-color: var(--accent-teal);
+    color: var(--accent-teal-hover) !important;
 }
 
-/* Disclaimer below input */
+/* Disclaimer below input: small, centered under the input */
 .disclaimer {
-    margin-top: 0.5rem;
+    margin-top: 1.5rem;
     padding-top: 0.5rem;
-    border-top: 1px solid #E2E8F0;
-    color: #64748b;
-    font-size: 0.8rem;
-}
-
-/* Welcome section: centered, tight spacing */
-.welcome-section {
+    border-top: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 0.65rem;
     text-align: center;
-    margin: 1rem 0 1.25rem 0;
-}
-.welcome-section h4 {
-    color: #0f172a;
-    margin-bottom: 0.4rem;
-    font-size: 1.1rem;
-    font-weight: 600;
 }
 </style>
 """
@@ -441,9 +569,9 @@ def main():
 
     # ----- Right side: main content -----
     # Header: title + last updated + Reset (only after first message)
-    col_title, col_spacer, col_reset = st.columns([2, 1, 1])
+    col_title, col_spacer, col_reset = st.columns([2.6, 0.4, 1])
     with col_title:
-        st.markdown("### INDmoney Fund Chat")
+        st.markdown('<p class="app-title">INDmoney Fund Chat</p>', unsafe_allow_html=True)
         st.caption(f"Data last updated: {last_update}")
     with col_reset:
         if st.session_state.messages:
@@ -458,29 +586,36 @@ def main():
 
     # ----- Welcome screen OR chat view -----
     if not st.session_state.messages:
-        # Welcome message introducing Fin + single instance of facts-only disclaimer
-        st.markdown(
-            '<div class="welcome-section">'
-            '<h4>Hi, I\'m Fin — I help you check facts on 10 HDFC mutual funds. Pick a fund or tap a question below to get started.</h4>'
-            '<p style="font-size:0.875rem; color:#64748B; font-weight:500; margin-top:0.4rem; margin-bottom:0;">Facts-only. No investment advice.</p>'
-            '</div>',
-            unsafe_allow_html=True,
-        )
+        with st.container(key="welcome_screen"):
+            # Two-line hero greeting
+            st.markdown(
+                '<div class="welcome-hero">'
+                '<p class="hero-line">Hi, I\'m <span class="accent">Fin</span></p>'
+                '<p class="hero-line">How can I help you today?</p>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
 
-        # Single consolidated set of 3 tappable starter prompt buttons
-        st.markdown("<p style='font-size:0.875rem; font-weight:600; color:#475569; margin-bottom:0.4rem;'>Example questions:</p>", unsafe_allow_html=True)
-        q_cols = st.columns(3)
-        for q_text, col in zip(EXAMPLE_QUESTIONS, q_cols):
-            with col:
-                st.markdown('<div class="example-card">', unsafe_allow_html=True)
-                if st.button(
-                    q_text,
-                    key=f"ex_q_{q_text.replace(' ', '_')}",
-                    use_container_width=True,
-                ):
-                    append_user_then_pending(q_text, selected_fund_id)
-                    st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
+            # Single consolidated set of 3 tappable starter prompt cards (icon + short label)
+            st.markdown('<div class="example-cards-spacer"></div>', unsafe_allow_html=True)
+            q_cols = st.columns(3)
+            for ex, col in zip(EXAMPLE_QUESTIONS, q_cols):
+                with col:
+                    if st.button(
+                        ex["label"],
+                        icon=ex["icon"],
+                        key=f"ex_q_{ex['label'].replace(' ', '_')}",
+                        use_container_width=True,
+                    ):
+                        append_user_then_pending(ex["query"], selected_fund_id)
+                        st.rerun()
+
+            # Disclaimer pinned near the bottom of the landing screen, just above the input
+            st.markdown(
+                '<p class="disclaimer welcome-disclaimer">INDmoney Fund Chat is for factual information only. '
+                'Check important information on the source link.</p>',
+                unsafe_allow_html=True,
+            )
     else:
         # Chat view: Streamlit sets aria-label on container so CSS can target user vs assistant
         for idx, msg in enumerate(st.session_state.messages):
@@ -569,11 +704,12 @@ def main():
             append_user_then_pending(prompt, selected_fund_id)
             st.rerun()
 
-    # ----- Disclaimer below the text input -----
-    st.markdown(
-        '<p class="disclaimer">INDmoney Fund Chat is for factual information only. Check important information on the source link.</p>',
-        unsafe_allow_html=True,
-    )
+    # ----- Disclaimer below the text input (chat view only; welcome screen renders its own, pinned lower) -----
+    if st.session_state.messages:
+        st.markdown(
+            '<p class="disclaimer">INDmoney Fund Chat is for factual information only. Check important information on the source link.</p>',
+            unsafe_allow_html=True,
+        )
 
 
 if __name__ == "__main__":
