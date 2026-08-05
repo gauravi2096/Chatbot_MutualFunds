@@ -428,6 +428,17 @@ def extract_name_from_text(text: str) -> str:
     return t.strip().rstrip(".!").capitalize()
 
 
+def is_comparison_query(text: str) -> bool:
+    """
+    True if an ambiguous (zero-fund) query is comparison-shaped, e.g. the
+    "Compare funds" starter card. Used only to pick which fund-clarification
+    picker to render (multi-select vs single-select) - orchestration.py
+    doesn't distinguish this case, it returns the same generic
+    needs_fund_clarification response either way.
+    """
+    return "compare" in text.lower()
+
+
 def append_user_then_pending(prompt: str, selected_fund_id: Optional[str]) -> None:
     """Append user message and set pending query so we switch to chat view, then process on next run."""
     st.session_state.messages.append({"role": "user", "content": prompt, "source_url": None, "last_data_update": None})
@@ -464,6 +475,10 @@ def process_pending_response() -> bool:
             st.session_state.pending_ambiguous_query = prompt
         else:
             st.session_state.pending_ambiguous_query = None
+        # Always clear any in-progress compare-picker selection - a new
+        # response means either a fresh clarification (start clean) or a
+        # completed exchange (nothing left to select for).
+        st.session_state.compare_selected_funds = []
 
         # Name capture turn: trigger conversational question after first successful factual answer
         if (
@@ -526,6 +541,8 @@ def main():
         st.session_state.awaiting_name = False
     if "pending_ambiguous_query" not in st.session_state:
         st.session_state.pending_ambiguous_query = None
+    if "compare_selected_funds" not in st.session_state:
+        st.session_state.compare_selected_funds = []
 
     # Load fund list (same source as FastAPI GET /funds)
     try:
@@ -580,6 +597,7 @@ def main():
                 st.session_state.messages = []
                 st.session_state.pending_query = None
                 st.session_state.pending_ambiguous_query = None
+                st.session_state.compare_selected_funds = []
                 st.session_state.awaiting_name = False
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
@@ -628,27 +646,84 @@ def main():
 
                 # Quick-reply buttons for 10 funds when clarification is required
                 if msg.get("needs_fund_clarification") and idx == len(st.session_state.messages) - 1:
-                    st.markdown("<p style='font-size:0.875rem; font-weight:600; color:#475569; margin-top:0.75rem; margin-bottom:0.35rem;'>Select a fund to check:</p>", unsafe_allow_html=True)
-                    grid_cols = st.columns(2)
-                    for i, f in enumerate(funds):
-                        col_target = grid_cols[i % 2]
-                        with col_target:
+                    ambiguous_q = st.session_state.get("pending_ambiguous_query", "") or ""
+
+                    if is_comparison_query(ambiguous_q):
+                        # Compare-funds clarification: multi-select, capped at 2.
+                        # selected_ids is ordered oldest-first (append = most
+                        # recent) so a 3rd tap knows which one to swap out.
+                        # Nothing ever disables: tapping a selected fund
+                        # deselects it; tapping an unselected fund while full
+                        # replaces the oldest selection immediately.
+                        st.markdown("<p style='font-size:0.875rem; font-weight:600; color:#475569; margin-top:0.75rem; margin-bottom:0.35rem;'>Select two funds to compare:</p>", unsafe_allow_html=True)
+                        selected_ids = st.session_state.compare_selected_funds
+                        grid_cols = st.columns(2)
+                        for i, f in enumerate(funds):
+                            col_target = grid_cols[i % 2]
+                            with col_target:
+                                is_selected = f["fund_id"] in selected_ids
+                                if st.button(
+                                    f"✓ {f['fund_name']}" if is_selected else f["fund_name"],
+                                    key=f"compare_fund_{f['fund_id']}_{idx}",
+                                    use_container_width=True,
+                                    type="primary" if is_selected else "secondary",
+                                ):
+                                    if is_selected:
+                                        selected_ids.remove(f["fund_id"])
+                                    else:
+                                        if len(selected_ids) >= 2:
+                                            selected_ids.pop(0)
+                                        selected_ids.append(f["fund_id"])
+                                    st.rerun()
+
+                        if len(selected_ids) == 2:
+                            funds_by_id = {f["fund_id"]: f for f in funds}
+                            chosen = [funds_by_id[fid] for fid in selected_ids]
+                            st.markdown("<div style='margin-top:0.5rem;'></div>", unsafe_allow_html=True)
                             if st.button(
-                                f["fund_name"],
-                                key=f"clarify_fund_{f['fund_id']}_{idx}",
+                                f"Compare {chosen[0]['fund_name']} and {chosen[1]['fund_name']}",
+                                key=f"compare_submit_{idx}",
+                                type="primary",
                                 use_container_width=True,
                             ):
-                                ambiguous_q = st.session_state.get("pending_ambiguous_query", "")
                                 st.session_state.pending_ambiguous_query = None
+                                st.session_state.compare_selected_funds = []
                                 st.session_state.messages.append({
                                     "role": "user",
-                                    "content": f["fund_name"],
+                                    "content": f"Compare {chosen[0]['fund_name']} and {chosen[1]['fund_name']}",
                                     "source_url": None,
                                     "last_data_update": None,
                                 })
-                                target_query = ambiguous_q if ambiguous_q else f["fund_name"]
-                                st.session_state.pending_query = (target_query, f["fund_id"])
+                                # Name both funds explicitly in the query text so
+                                # detect_funds_in_query finds both and chat()
+                                # falls through to its existing unscoped
+                                # (fund_id=None) multi-fund retrieval path -
+                                # the same path a hand-typed two-fund query uses.
+                                target_query = f"{ambiguous_q} for {chosen[0]['fund_name']} and {chosen[1]['fund_name']}"
+                                st.session_state.pending_query = (target_query, None)
                                 st.rerun()
+                    else:
+                        # Single-fund clarification: unchanged, single-select, submits immediately.
+                        st.markdown("<p style='font-size:0.875rem; font-weight:600; color:#475569; margin-top:0.75rem; margin-bottom:0.35rem;'>Select a fund to check:</p>", unsafe_allow_html=True)
+                        grid_cols = st.columns(2)
+                        for i, f in enumerate(funds):
+                            col_target = grid_cols[i % 2]
+                            with col_target:
+                                if st.button(
+                                    f["fund_name"],
+                                    key=f"clarify_fund_{f['fund_id']}_{idx}",
+                                    use_container_width=True,
+                                ):
+                                    st.session_state.pending_ambiguous_query = None
+                                    st.session_state.messages.append({
+                                        "role": "user",
+                                        "content": f["fund_name"],
+                                        "source_url": None,
+                                        "last_data_update": None,
+                                    })
+                                    target_query = ambiguous_q if ambiguous_q else f["fund_name"]
+                                    st.session_state.pending_query = (target_query, f["fund_id"])
+                                    st.rerun()
 
         # If we have a pending query, show assistant bubble with spinner then process and rerun
         if st.session_state.pending_query:
