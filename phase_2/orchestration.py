@@ -222,6 +222,32 @@ def _restricted_response(
     }
 
 
+def _build_sources(chunks: list, fund_id_clean: Optional[str], detected_fund_ids: list) -> list:
+    """
+    Build the list of {fund_name, source_url} sources for a response, one per
+    fund actually being answered about:
+      - Single fund (fund_id_clean set): exactly 1 source for that fund.
+      - Comparison (fund_id_clean is None, 2+ funds named): one source per
+        named fund, limited to funds that were actually retrieved - not
+        however many chunks the unscoped top-k search happened to surface,
+        which isn't limited to just the named funds and can include others.
+    """
+    if fund_id_clean is not None:
+        matches = [c for c in chunks if c.get("fund_id") == fund_id_clean]
+        selected = matches[:1]
+    elif len(detected_fund_ids) >= 2:
+        chunks_by_fund = {c["fund_id"]: c for c in chunks if c.get("fund_id")}
+        selected = [chunks_by_fund[fid] for fid in detected_fund_ids if fid in chunks_by_fund]
+    else:
+        selected = chunks[:1]
+
+    return [
+        {"fund_name": c.get("fund_name", ""), "source_url": c.get("source_url", "")}
+        for c in selected
+        if c.get("source_url")
+    ]
+
+
 def chat(
     query: str,
     retriever: Optional[Retriever] = None,
@@ -270,6 +296,7 @@ def chat(
         )
 
     # Intent 3 / 4 / 5: Factual queries in "All funds" mode
+    detected_fund_ids: list = []
     if fund_id_clean is None:
         detected_fund_ids = detect_funds_in_query(query)
         if len(detected_fund_ids) == 0:
@@ -310,6 +337,7 @@ def chat(
     return {
         "message": reply,
         "source_url": source_url or "",
+        "sources": _build_sources(chunks, fund_id_clean, detected_fund_ids),
         "last_data_update": last_data_update,
         "rejected": False,
     }

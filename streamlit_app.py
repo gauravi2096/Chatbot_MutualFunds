@@ -456,6 +456,7 @@ def process_pending_response() -> bool:
         result = chat(query=prompt, fund_id=fund_id)
         reply = result.get("message", "")
         source_url = result.get("source_url", "")
+        sources = result.get("sources", [])
         last_data_update = result.get("last_data_update", "")
         rejected = result.get("rejected", False)
         needs_fund_clarification = result.get("needs_fund_clarification", False)
@@ -465,6 +466,7 @@ def process_pending_response() -> bool:
             "role": "assistant",
             "content": reply,
             "source_url": source_url,
+            "sources": sources,
             "last_data_update": last_data_update,
             "rejected": rejected,
             "needs_fund_clarification": needs_fund_clarification,
@@ -639,7 +641,18 @@ def main():
         for idx, msg in enumerate(st.session_state.messages):
             with st.chat_message(msg["role"], avatar=None):
                 st.markdown(msg["content"])
-                if msg.get("source_url"):
+                sources = msg.get("sources") or []
+                if len(sources) >= 2:
+                    # Comparison answer: one labeled link per fund so it's
+                    # clear which link goes with which fund.
+                    links = " &nbsp;·&nbsp; ".join(
+                        f"[{s['fund_name']} source]({s['source_url']})"
+                        for s in sources
+                        if s.get("source_url")
+                    )
+                    if links:
+                        st.caption(links)
+                elif msg.get("source_url"):
                     st.caption(f"[View source on INDmoney]({msg['source_url']})")
                 if msg.get("last_data_update"):
                     st.caption(f"Data as of {msg['last_data_update']}")

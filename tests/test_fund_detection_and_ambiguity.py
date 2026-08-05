@@ -32,14 +32,25 @@ def test_intent_classification():
     res_zero = chat(query="What's the expense ratio?", fund_id=None)
     assert res_zero.get("needs_fund_clarification") is True
 
-    # Intent 4: Factual query, 1 fund named -> single fund retrieval
+    # Intent 4: Factual query, 1 fund named -> single fund retrieval, exactly 1 source
     res_one = chat(query="What is the expense ratio of HDFC Flexi Cap Fund?", fund_id=None)
     assert res_one.get("needs_fund_clarification") is not True
     assert res_one.get("rejected") is False
+    assert len(res_one.get("sources", [])) == 1, (
+        f"Single-fund answer should have exactly 1 source, got {res_one.get('sources')}"
+    )
+    assert res_one["sources"][0]["fund_name"] == "HDFC Flexi Cap Fund"
 
-    # Intent 5: Factual query, 2+ funds named -> comparison flow
+    # Intent 5: Factual query, 2+ funds named -> comparison flow, one source per named fund
     res_two = chat(query="Compare expense ratios of HDFC Flexi Cap Fund and HDFC Small Cap Fund", fund_id=None)
     assert res_two.get("needs_fund_clarification") is not True
+    assert len(res_two.get("sources", [])) == 2, (
+        f"2-fund comparison should have exactly 2 sources, got {res_two.get('sources')}"
+    )
+    source_fund_names = {s["fund_name"] for s in res_two["sources"]}
+    assert source_fund_names == {"HDFC Flexi Cap Fund", "HDFC Small Cap Fund"}, (
+        f"Comparison sources should name both compared funds, got {source_fund_names}"
+    )
 
     print("PASS: test_intent_classification")
 
