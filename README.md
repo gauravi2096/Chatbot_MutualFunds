@@ -2,68 +2,50 @@
 
 [![Daily data update](https://github.com/gauravi2096/Chatbot_MutualFunds/actions/workflows/daily-data-update.yml/badge.svg)](https://github.com/gauravi2096/Chatbot_MutualFunds/actions/workflows/daily-data-update.yml)
 
-Fin answers factual questions about 10 HDFC mutual funds listed on INDmoney — NAV, expense ratio, AUM, exit load, returns, holdings, risk level, benchmark. Every reply includes a source link and a data timestamp, and it refuses anything that drifts into advice.
+Fin answers factual questions about 10 HDFC mutual funds listed on INDmoney. Every answer carries a source link and a data timestamp, and it declines anything shaped like advice.
 
 ---
 
-## The problem
+## Who this is for, and the problem
 
-Retail investors comparing mutual fund schemes have two options: read the KIM/SID documents to find one number, or ask a distributor who's paid a commission to sell a particular fund. The first is slow, the second has a conflict of interest built in.
+A retail investor comparing mutual funds has two options: read the KIM/SID documents to find one number, or ask a distributor who's paid a commission to sell a particular fund. The first is slow. The second has a conflict of interest built in — the person answering has a reason to steer the answer.
 
-The same problem shows up on the support side. Content and support teams field the same factual questions repeatedly — "what's the expense ratio," "what's the exit load" — and each answer carries compliance exposure the moment it drifts from fact into advice ("I'd go with this one").
+The same problem shows up on the support side, in brief: content and support teams field the same factual questions repeatedly, and every answer risks drifting from fact into advice.
 
-Fin only answers what's askable as fact. Every answer is cited and timestamped so it's checkable against the source. There's no recommendation step in the pipeline, so there's nothing to bias — it refuses advice-shaped questions by design, not by accident.
-
----
-
-## What I built
-
-- **Single-fund and multi-fund factual queries** — ask about one fund, or ask a factual comparison across two ("compare expense ratios of X and Y"); both are answered from retrieved context, not the model's own judgment.
-- **Mandatory source citation + timestamp on every reply** — each response carries one link back to the INDmoney fund page and the last data-refresh timestamp (date + 12-hour time).
-- **Intent-based advice refusal with an AMFI redirect** — questions asking which fund to buy, "which is better," or for a recommendation are refused and redirected to an AMFI investor-education page instead of a dead end.
-- **Ambiguous-fund clarification** — in "All funds" mode, a question that doesn't name a fund ("what's the expense ratio?") triggers a clarifying question with a fund picker instead of guessing which fund was meant.
-- **Deferred, session-only personalization** — Fin asks for a name once, after the first successful answer instead of on the landing screen, and never persists it beyond the session.
-- **Daily automated data refresh** — a GitHub Actions workflow re-scrapes all 10 fund pages every morning at 10:00 AM IST and commits the updated structured data and vector index back to the repo.
+Fin only answers what's askable as fact, from retrieved data — there's no recommendation step in the pipeline to steer an answer. Every answer is cited and timestamped so it's checkable against the source.
 
 ---
 
-## PM thinking — key decisions
+## Walking through Fin
 
-### Decision 1 — Audited the RAG choice after the fact, not before
+It opens with a greeting and three starter cards: NAV & AUM, Expense ratio, Compare funds.
 
-ChromaDB went in early, before I'd tested whether this corpus actually needed semantic search. Auditing the data later made the gap obvious: each fund's page is one block of structured fields (NAV, AUM, expense ratio, exit load) that a keyed lookup could serve just as well as a vector search. Rather than retrofit a justification for the architecture I'd already built, I documented the gap in the limitations below. RAG earns its place once the corpus expands to unstructured content — fund manager commentary, scheme notes — which is the direction I'd take it next.
+A plain factual question gets one line, one link, one timestamp:
 
-### Decision 2 — A refusal that generalizes, not just matches keywords
+> The expense ratio of HDFC Flexi Cap Fund is 0.75%.
+> View source on INDmoney · Data as of Aug 05, 2026 12:45 pm
 
-The first version only fired on exact phrasing ("should I buy") and broke on any rephrasing. I broadened the trigger phrase list, and moved the refusal response itself out of a hardcoded string and into the LLM's system instructions. I also changed the refusal's link from a fund page — the same one the question was refused for — to an AMFI investor-education page.
+Ask a question that doesn't name a fund — "what's the expense ratio?" — in "All funds" mode, and Fin doesn't guess. It asks: "Which fund would you like to know about?" with a grid of all 10 funds. Earlier, queries like this were answered silently, using whichever fund's data happened to embed closest to the query — an assumption presented as fact, the same failure category as hallucination, just one layer down, at retrieval instead of generation. Explicit fund-detection before retrieval now catches this instead of guessing.
 
-### Decision 3 — Closing the one gap where the bot broke its own promise
+Ask it to compare two funds without naming both, and the same picker becomes multi-select instead. Tap a fund to select it — it highlights, checkmarked. Tap a second, and a "Compare X and Y" button appears. This used to be broken: the picker was single-select even for comparison queries, so picking one fund submitted immediately instead of waiting for a second pick. Tapping a third fund now swaps out the older selection, instead of requiring an explicit deselect first. The resulting answer carries two separately labeled source links, one per fund — that was also a bug: it used to show one link standing in for both.
 
-Testing surfaced that ambiguous queries in "All funds" mode were being silently answered using whichever fund's data happened to embed closest to the query — an assumption presented as fact, the same failure category as hallucination, just at the retrieval layer instead of generation. I added explicit fund-detection before retrieval runs: if a query in "All funds" mode doesn't name a fund, it now triggers a clarifying question with a fund picker instead of a guess.
+Ask something advice-shaped — "should I invest in HDFC Value Fund" — and Fin declines instead of hedging:
 
-### Decision 4 — Scoped the corpus on purpose, documented what's out
+> I'm happy to help you learn more about investing, but I'd like to point you in the direction of some helpful resources first... If you have any specific questions about HDFC funds, such as their expense ratios or NAVs, I'd be happy to help you find the answers.
 
-None of the 10 HDFC funds in the corpus are ELSS funds, so lock-in-period questions aren't answerable — the schema has a field for it, but every fund's value is empty. I kept the corpus at its current 10-fund lineup rather than scope-creep it to "fix" this, and named the gap in limitations rather than leaving a user to discover it by asking and getting a non-answer.
+This refusal used to only fire on exact phrasing like "should I buy," and broke on any rephrasing. The trigger set was broadened. Separately, the refusal text itself moved out of a hardcoded string and into the LLM's system instructions, so it reads as a redirect rather than a canned rejection. The link changed too — from a fund page (the same one the question had just been refused for) to an actual investor-education resource.
 
-### Decision 5 — Personalization that earns its place
+Try to hand it personal information — tested with a PAN number — and it refuses that too, plainly:
 
-Asking for a name before delivering any value adds friction for nothing in return. I reordered the flow so it asks after the first successful answer instead of on the landing screen. It only asks once per session, and the name is stored in session state, never persisted.
+> This chatbot cannot accept, store, or process any personal or financial information such as PAN, Aadhaar, account numbers, OTPs, email addresses, or phone numbers. Please do not share such details here.
 
----
+Both refusals still carry a source link and timestamp. The response format holds even when the answer is "no."
 
-## Screenshots
+After the first real answer, Fin asks for a name, once:
 
-*Add these three screenshots to a `docs/screenshots/` folder, then paste the markdown below into this section:*
+> Glad that helped! What should I call you, so I'm not just 'hey there' every time?
 
-1. **Landing screen** — the hero greeting and starter-prompt cards
-2. **Comparison answer** — a multi-fund factual comparison with source link and timestamp visible
-3. **Refusal example** — an advice-shaped question being redirected to AMFI
-
-```markdown
-![Landing screen](docs/screenshots/landing.png)
-![Comparison answer](docs/screenshots/comparison.png)
-![Refusal example](docs/screenshots/refusal.png)
-```
+This used to ask upfront, before delivering any value. It's asked after the first successful answer instead now. It comes up once or twice a session at most, and isn't persisted beyond it.
 
 ---
 
@@ -71,14 +53,12 @@ Asking for a name before delivering any value adds friction for nothing in retur
 
 - **Corpus is sourced from INDmoney's public fund pages, not directly from AMC/SEBI/AMFI filings.** INDmoney is itself aggregating this data; Fin doesn't go to the primary regulatory source.
 - **No ELSS fund in the corpus** — lock-in-period questions aren't answerable for any of the 10 funds.
-- **RAG is currently retrieving over data that doesn't strictly need semantic search yet.** Each fund is one block of structured key-value fields; a direct lookup by fund ID would serve most queries just as well as the current vector search. See Decision 1 above.
 - **No cross-session memory.** Names and conversation context live in Streamlit session state only and disappear when the session ends — nothing about a user persists across visits.
 
 ---
 
 ## What I'd build next
 
-- **Expand the corpus with unstructured content** — fund manager commentary, scheme notes, factsheet narrative — the point at which semantic retrieval earns its place over a structured lookup.
 - **Add an ELSS fund** to the lineup so lock-in questions have a real answer instead of a documented gap.
 - **Cross-session memory** — recognize a returning user without re-asking for a name every session.
 - **Source directly from AMC/SEBI/AMFI filings** if this needed to be more than a portfolio project.
