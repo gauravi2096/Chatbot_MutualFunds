@@ -85,7 +85,7 @@ Open the local URL Streamlit prints (defaults to `http://localhost:8501`).
 | Variable | Required | Default | Description |
 |----------|----------|---------|--------------|
 | `GROQ_API_KEY` | Yes | — | Groq API key for LLM generation |
-| `GROQ_MODEL` | No | `llama-3.3-70b-versatile` | Groq model name |
+| `GROQ_MODEL` | No | `openai/gpt-oss-120b` | Groq model name |
 | `RAG_TOP_K` | No | `5` | Number of chunks retrieved per query |
 
 ### Refreshing the data manually (optional)

@@ -29,7 +29,7 @@ Ensure Phase 1 ingestion has been run at least once (so the vector store and `so
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `GROQ_API_KEY` | Groq API key (required for LLM) | — |
-| `GROQ_MODEL` | Model name | `llama-3.3-70b-versatile` |
+| `GROQ_MODEL` | Model name | `openai/gpt-oss-120b` |
 | `RAG_TOP_K` | Number of chunks to retrieve | `5` |
 | `API_HOST` | Bind host | `0.0.0.0` |
 | `API_PORT` | Bind port | `8000` |
