@@ -298,6 +298,17 @@ div[data-testid="stChatInput"] {
     border-top: 1px solid var(--border-subtle);
     background: var(--bg-page) !important;
     padding-top: 0.5rem;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+}
+/* The single direct child of stChatInput is the row holding the textarea and
+   the send button side by side. align-items:flex-end keeps the button
+   anchored to the bottom of that row (WhatsApp/iMessage/ChatGPT pattern) as
+   the textarea grows, instead of re-centering on the growing box. */
+div[data-testid="stChatInput"] > div {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-end !important;
 }
 div[data-testid="stChatInput"] textarea {
     background: var(--bg-card) !important;
@@ -307,16 +318,22 @@ div[data-testid="stChatInput"] textarea {
     padding: 0.9rem 1.35rem !important;
     box-shadow: var(--shadow-soft);
     transition: border-color .15s ease, box-shadow .15s ease;
+    /* Grow up to ~8 lines, then scroll internally instead of pushing the
+       page (and the input itself) further down. */
+    max-height: 13rem !important;
+    overflow-y: auto !important;
+    box-sizing: border-box !important;
 }
 div[data-testid="stChatInput"] textarea:focus {
     border-color: var(--accent-teal) !important;
     box-shadow: 0 0 0 4px var(--accent-teal-ring) !important;
     outline: none !important;
 }
-/* Vertically re-center the send button now that the pill textarea is taller;
-   Streamlit's default wrapper uses align-items:flex-end which no longer centers it */
+/* Keep the send button's own wrapper bottom-aligned too, in case Streamlit's
+   markup nests an extra flex layer around it. */
 div[data-testid="stChatInput"] div:has(> button[data-testid="stChatInputSubmitButton"]) {
-    align-items: center !important;
+    align-items: flex-end !important;
+    align-self: flex-end !important;
 }
 
 /* Primary teal buttons (e.g. selected fund in the sidebar) */
