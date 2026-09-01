@@ -41,7 +41,7 @@ from phase_2.orchestration import chat
 EXAMPLE_QUESTIONS = [
     {"icon": "📊", "label": "NAV & AUM", "query": "What is the NAV and AUM?"},
     {"icon": "💰", "label": "Expense ratio", "query": "What's the expense ratio?"},
-    {"icon": "⚖️", "label": "Compare funds", "query": "Compare expense ratios of two funds"},
+    {"icon": "⚖️", "label": "Compare funds", "query": "Compare two funds"},
 ]
 
 # "Cool trust" theme: slate/navy + teal accent, off-white background.

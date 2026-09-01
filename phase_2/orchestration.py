@@ -32,6 +32,16 @@ Rules:
 - Keep answers concise and factual. Include the fund name when citing a value.
 - Do not include source links or timestamps in your answer text; they will be added separately."""
 
+COMPARISON_TABLE_SYSTEM_PROMPT = """You are a factual assistant for INDmoney mutual fund data. The user wants a full side-by-side comparison of two funds, using ONLY the context provided below.
+
+Rules:
+- Answer ONLY from the provided context. If a value is missing from the context, write "Not available" for that cell rather than guessing.
+- Do NOT give investment advice, recommendations, or an opinion on which fund is better.
+- Structure your reply as:
+  1. A markdown table with one row per field and one column per fund (fund names as column headers), in exactly this field order: NAV, AUM, Expense Ratio, Exit Load, Min Lumpsum, Min SIP, 1Y CAGR, 3Y CAGR, 5Y CAGR, Since Inception, Equity %, Debt+Cash %, Risk Level, Benchmark.
+  2. Below the table, a "Top Holdings" section listing each fund's top holdings separately, clearly labeled by fund name (not as a table row).
+- Do not include source links or timestamps in your answer text; they will be added separately."""
+
 ADVISORY_REFUSAL_SYSTEM_PROMPT = f"""You respond when a user asks for investment advice, a fund recommendation, an opinion, which fund to pick or buy, personalized suitability, or a comparison meant to choose one fund over another.
 
 Your role is to share facts about the 10 listed HDFC funds on INDmoney, not recommendations on what to buy.
@@ -59,6 +69,51 @@ Reply with a short, factual answer only."""
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_content},
     ]
+
+
+def build_comparison_table_messages(query: str, context_text: str) -> list:
+    """Build system + user messages for Groq to generate a full comparison table."""
+    user_content = f"""Use the following context to build the comparison. Answer only from this context.
+
+Context:
+{context_text}
+
+User question: {query}
+
+Follow the exact structure described in your instructions."""
+
+    return [
+        {"role": "system", "content": COMPARISON_TABLE_SYSTEM_PROMPT},
+        {"role": "user", "content": user_content},
+    ]
+
+
+# Field keywords that, if named in a comparison query, mean the answer should
+# stay narrowed to that one field rather than expanding to the full table
+# (e.g. "compare exit load of X and Y"). Deliberately excludes bare "equity"
+# and "debt", since those are substrings of fund names themselves (e.g.
+# "HDFC Hybrid Equity Fund", "HDFC Dynamic Debt Fund") and would otherwise
+# false-positive on a generic "compare these two funds" request.
+_FIELD_KEYWORDS = (
+    "nav", "aum", "expense", "exit load", "lumpsum", "sip", "cagr",
+    "since inception", "inception", "risk", "benchmark", "holding",
+    "equity %", "equity allocation", "equity exposure", "equity percentage",
+    "debt+cash", "debt %", "debt allocation", "debt exposure", "cash allocation",
+)
+_FIELD_KEYWORD_PATTERN = re.compile(
+    r"\b(?:" + "|".join(re.escape(k) for k in _FIELD_KEYWORDS) + r")\b",
+    re.IGNORECASE,
+)
+
+
+def _mentions_specific_field(query: str) -> bool:
+    """
+    True if the query names a specific data field (e.g. "exit load", "NAV"),
+    so the answer should stay narrowed to just that field. False for a
+    generic "compare these two funds" request with no field named, which
+    should get the full comparison table instead.
+    """
+    return bool(_FIELD_KEYWORD_PATTERN.search(query))
 
 
 # Patterns for sensitive personal/financial information (do not store or process)
@@ -324,7 +379,15 @@ def chat(
             "rejected": False,
         }
 
-    messages = build_messages(query, context_text, source_url, last_data_update)
+    is_generic_comparison = (
+        fund_id_clean is None
+        and len(detected_fund_ids) >= 2
+        and not _mentions_specific_field(query)
+    )
+    if is_generic_comparison:
+        messages = build_comparison_table_messages(query, context_text)
+    else:
+        messages = build_messages(query, context_text, source_url, last_data_update)
     reply = chat_completion(messages)
     if not reply:
         return {
