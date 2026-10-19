@@ -8,49 +8,78 @@ Uses Playwright for JS-rendered content. Extraction uses:
 - Playwright locators as fallback for Overview/performance table values
 """
 
+import json
 import logging
 import re
+import time
 from datetime import datetime
 from typing import Any, Dict, Optional
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import Page, sync_playwright
 
-from phase_1.config import REQUEST_TIMEOUT, USER_AGENT
+from phase_1.config import DATA_WAIT_TIMEOUT, REQUEST_TIMEOUT, USER_AGENT
 
 logger = logging.getLogger(__name__)
 
+# The page is ready when the rendered main text has a NAV amount (a rupee value with
+# decimals, e.g. "₹49.64") and the AUM label. Waiting on "networkidle" never settled
+# reliably on INDmoney, and the timeout used to be swallowed.
+_DATA_READY_JS = r"""() => {
+    const el = document.querySelector('main') || document.body;
+    const t = (el && el.innerText) || '';
+    return /₹\s*[\d,]+\.\d+/.test(t) && /AUM/i.test(t);
+}"""
 
-def fetch_html(url: str, page: Optional[Page] = None) -> Optional[str]:
+
+def fetch_html(url: str, page: Optional[Page] = None, label: Optional[str] = None) -> Optional[str]:
     """
     Fetch HTML for a URL. Uses Playwright for full JS rendering.
     If `page` is provided, uses it and returns content (caller owns lifecycle).
     Otherwise launches a new browser, fetches, and closes (standalone call).
     """
     if page is not None:
-        return _fetch_with_page(page, url)
+        return _fetch_with_page(page, url, label)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         try:
             ctx = browser.new_context(user_agent=USER_AGENT)
             pg = ctx.new_page()
-            return _fetch_with_page(pg, url)
+            return _fetch_with_page(pg, url, label)
         finally:
             browser.close()
 
 
-def _fetch_with_page(page: Page, url: str) -> Optional[str]:
-    """Navigate to URL with existing Playwright page and return HTML."""
-    timeout_ms = REQUEST_TIMEOUT * 1000
+def _fetch_with_page(page: Page, url: str, label: Optional[str] = None) -> Optional[str]:
+    """
+    Navigate to URL with existing Playwright page and return HTML, or None if the
+    navigation itself failed. If the data never appears within DATA_WAIT_TIMEOUT the
+    timeout is logged (fund, seconds waited, page text length) and the HTML is still
+    returned, so the caller's validation decides whether it is usable.
+    """
+    label = label or url
+    started = time.monotonic()
     try:
-        page.goto(url, timeout=timeout_ms, wait_until="domcontentloaded")
+        page.goto(url, timeout=REQUEST_TIMEOUT * 1000, wait_until="domcontentloaded")
+    except Exception as e:
+        logger.warning("Playwright navigation failed for %s after %.1fs: %s", label, time.monotonic() - started, e)
+        return None
+    try:
+        page.wait_for_function(_DATA_READY_JS, timeout=DATA_WAIT_TIMEOUT * 1000)
+    except Exception as e:
         try:
-            page.wait_for_load_state("networkidle", timeout=timeout_ms)
+            body = page.inner_text("body")
         except Exception:
-            page.wait_for_load_state("load", timeout=timeout_ms)
+            body = ""
+        bot_check = " (looks like a bot-verification page)" if "security verification" in body.lower() else ""
+        logger.warning(
+            "Timed out waiting for NAV/AUM text for %s after %.1fs (page text length %d)%s: %s",
+            label, time.monotonic() - started, len(body), bot_check, type(e).__name__,
+        )
+    try:
         return page.content()
     except Exception as e:
-        logger.warning("Playwright fetch failed for %s: %s", url, e)
+        logger.warning("Could not read page content for %s: %s", label, e)
         return None
 
 
@@ -135,7 +164,9 @@ def _extract_with_playwright(page: Page) -> Dict[str, Any]:
     except Exception:
         pass
     try:
-        # Benchmark: Nifty ... TR INR, S&P BSE ... Index, or "uses the X as its benchmark"
+        # Benchmark: Nifty ... TR INR, a "Benchmark" label, or "uses the X as its benchmark".
+        # There is deliberately no bare "S&P BSE" text match: the only match on the page is a
+        # hidden, sitewide footer link ("S&P BSE LargeCap") that is not the fund's benchmark.
         nifty_loc = page.get_by_text(re.compile(r"Nifty\s+.+TR\s+INR", re.I))
         if nifty_loc.count() > 0:
             t = nifty_loc.first.inner_text(timeout=1000)
@@ -143,18 +174,11 @@ def _extract_with_playwright(page: Page) -> Dict[str, Any]:
             if m:
                 out["benchmark"] = m.group(1).strip()
         if "benchmark" not in out:
-            sp_loc = page.get_by_text(re.compile(r"S&P\s*BSE", re.I))
-            if sp_loc.count() > 0:
-                t = sp_loc.first.inner_text(timeout=1000)
-                m = re.search(r"(S&P\s*BSE[^|\n]+?(?:Index|TRI)?)", t)
-                if m:
-                    out["benchmark"] = m.group(1).strip()
-        if "benchmark" not in out:
             try:
                 bench_label = page.get_by_text("Benchmark", exact=False).locator("..").first
                 if bench_label.count() > 0:
                     t = bench_label.inner_text(timeout=1000)
-                    for pat in [r"(Nifty\s+[A-Za-z0-9\s]+TR\s+INR)", r"(S&P\s*BSE[^|\n]+?(?:Index|TRI)?)", r"([A-Za-z0-9\s\-]+(?:Index|TRI|TR\s+INR))"]:
+                    for pat in [r"(Nifty\s+[A-Za-z0-9\s]+TR\s+INR)", r"(S&P\s*BSE[^|\n]+?(?:Index|TRI))", r"([A-Za-z0-9\s\-]+(?:Index|TRI|TR\s+INR))"]:
                         m = re.search(pat, t)
                         if m and "Get the latest" not in m.group(1):
                             out["benchmark"] = m.group(1).strip()
@@ -211,6 +235,131 @@ def _extract_with_playwright(page: Page) -> Dict[str, Any]:
     except Exception:
         pass
     return out
+
+
+# One holding: a name (no brackets or "?", so it may hold %, periods, hyphens, apostrophes, & and commas)
+# followed by its weight in brackets, e.g. "7.34% Govt Stock 2064(14.7%)", optionally comma separated.
+_HOLDING_ITEM = re.compile(r"\s*([^()?]{1,100}?)\s*\((\d+(?:\.\d+)?)%\)\s*(?:,\s*)?")
+
+
+def _parse_holdings(segment: str):
+    """Read holdings one after another from the start of `segment`. Returns (items, unparsed rest)."""
+    items, pos = [], 0
+    while True:
+        m = _HOLDING_ITEM.match(segment, pos)
+        # Holding names are Title Case; a "name" with several lowercase words is a sentence, not a holding.
+        if not m or sum(w[:1].islower() for w in m.group(1).split()) > 2:
+            return items, segment[pos:]
+        items.append(f"{m.group(1).strip()}({m.group(2)}%)")
+        pos = m.end()
+
+
+def _valid_holdings(items, rest: str, expected: Optional[int], whole: bool) -> Optional[str]:
+    """
+    Accept a holdings list only if it is a clean list of "Name(number%)" items: at least one, exactly the
+    N in "top N holdings" (fewer is accepted only when nothing more follows, as for a fund holding a single
+    ETF), and, when `whole`, nothing left over (so a paragraph of prose can never pass).
+    """
+    if not items or (whole and rest.strip()):
+        return None
+    if expected is not None and len(items) != expected:
+        if len(items) > expected or _HOLDING_ITEM.search(rest.split("?")[0]):
+            return None
+    return ", ".join(items)
+
+
+def _extract_top_holdings(text: str) -> Optional[str]:
+    """
+    Top holdings from the FAQ sentence "The top N holdings of the fund are A(1%), B(2%), C(3%)".
+    Falls back to the older patterns, but only a result that passes the same validation is used.
+    Returns None (stored as "N/A") when nothing valid is found; never prose.
+    """
+    flat = re.sub(r"\s+", " ", text)
+    m = re.search(r"top\s+(\d+)\s+holdings\s+of\s+the\s+fund\s+are\s+", flat, re.IGNORECASE)
+    expected = int(m.group(1)) if m else None
+    if not m:
+        m = re.search(r"holdings\s+of\s+the\s+fund\s+are\s+", flat, re.IGNORECASE)
+    if m:
+        segment = flat[m.end():].split("?")[0]  # up to the next question mark
+        items, rest = _parse_holdings(segment)
+        found = _valid_holdings(items, rest, expected, whole=False)
+        if found:
+            return found
+    fallbacks = (
+        lambda: _first_group(text, r"holdings of the fund are\s+([^.?]+(?:\(\d+\.\d*%\)[^.?]*)+)"),
+        lambda: (lambda mm: mm.group(1).strip() if mm else None)(
+            re.search(r"top \d+ holdings[^.]*?are\s+([^?]+?)(?=\s+Who is|\s+What is|\s+How do|\?\s)", text, re.IGNORECASE)
+        ),
+        lambda: (lambda mm: mm.group(1) if mm else None)(
+            re.search(r"Holdings\s+(.+?)(?=See all|Portfolio Changes|$)", text, re.DOTALL | re.IGNORECASE)
+        ),
+    )
+    for fallback in fallbacks:
+        candidate = fallback()
+        if not candidate:
+            continue
+        candidate = re.sub(r"\s+", " ", candidate.strip())
+        if candidate.startswith("of the fund are "):
+            candidate = candidate[len("of the fund are "):]
+        items, rest = _parse_holdings(candidate)
+        found = _valid_holdings(items, rest, expected, whole=True)
+        if found:
+            return found
+    return None
+
+
+# The risk labels INDmoney shows, longest first so "Moderately High risk" is never read as "High risk".
+_RISK_LABEL = r"(?:Very High|Moderately High|Moderately Low|Low to Moderate|Moderate|High|Very Low|Low)\s+risk"
+
+
+def _plain_amount(value: str) -> str:
+    """'100.00' -> '100', '1,000.50' -> '1000.5' (the style the other min-investment values use)."""
+    number = float(value.replace(",", ""))
+    return str(int(number)) if number == int(number) else str(number)
+
+
+# INDmoney (the source) misspells this index name on the HDFC Infrastructure Fund page. This table is a
+# spelling fix only: known typo -> corrected text. It applies on an exact match (after whitespace
+# normalisation); any other benchmark text passes through untouched.
+_BENCHMARK_TYPO_FIXES = {
+    "BSE India Infrasturcture TRI TR INR": "BSE India Infrastructure TRI TR INR",
+}
+
+
+def _fix_known_benchmark_typo(benchmark: Optional[str]) -> Optional[str]:
+    if not benchmark:
+        return benchmark
+    normalised = re.sub(r"\s+", " ", benchmark).strip()
+    fixed = _BENCHMARK_TYPO_FIXES.get(normalised)
+    if fixed:
+        logger.info("Benchmark spelling fixed: %r -> %r", normalised, fixed)
+        return fixed
+    return benchmark
+
+
+def _benchmark_from_embedded_data(html: str) -> Optional[str]:
+    """
+    The Overview card is also embedded in the page as JSON:
+    {"name":"Benchmark","value":"BSE 250 SmallCap TR INR", ...}. Prefer it: it is the fund's own
+    benchmark and does not depend on what is visible in the rendered text.
+    """
+    m = re.search(r'"name"\s*:\s*"Benchmark"\s*,\s*"value"\s*:\s*("(?:[^"\\]|\\.)*")', html)
+    if not m:
+        return None
+    try:
+        return json.loads(m.group(1)).strip() or None
+    except ValueError:
+        return None
+
+
+def _is_acceptable_benchmark(value: Optional[str]) -> bool:
+    """Reject empty values, "N/A", and a bare index family such as "S&P BSE" or "Nifty"."""
+    if not value:
+        return False
+    v = re.sub(r"\s+", " ", value).strip()
+    if v.upper() == "N/A":
+        return False
+    return not re.fullmatch(r"(?:S&P )?(?:BSE|Nifty)", v, re.IGNORECASE)
 
 
 def extract_fund_data(
@@ -299,12 +448,24 @@ def extract_fund_data(
         m = re.search(r"₹\s*(\d+)\s*/\s*₹\s*(\d+)", text)
         if m:
             min_lump, min_sip = m.group(1), m.group(2)
+    if not min_lump:
+        # About text when the Overview card shows "--/--":
+        # "Minimum investment for lump sum payment is INR 100.00 and for SIP is INR 100.00."
+        m = re.search(
+            r"minimum investment for lump\s*sum[^.\u20b9]{0,30}?(?:INR|Rs\.?|\u20b9)\s*([\d,]+(?:\.\d+)?)"
+            r".{0,60}?\bSIP\b[^.\u20b9\d]{0,20}?(?:INR|Rs\.?|\u20b9)\s*([\d,]+(?:\.\d+)?)",
+            text, re.IGNORECASE | re.DOTALL,
+        )
+        if m:
+            min_lump, min_sip = _plain_amount(m.group(1)), _plain_amount(m.group(2))
 
     # Exit load
     exit_load = (
         _first_group(text, r"Exit Load\s*[|\|]\s*([^|\n]+)")
         or _first_group(text, r"(\d+\.?\d*%)\s*if redeemed")
         or _first_group(text, r"exit load is\s+(\d+%?)")
+        # Overview card: "Exit Load" and its value sit on separate lines (or are space separated)
+        or _first_group(text, r"Exit Load\s+(\d+(?:\.\d+)?\s*%|Nil)(?![\w.])")
     )
     exit_load = exit_load.strip() if exit_load else None
 
@@ -330,14 +491,18 @@ def extract_fund_data(
         "hdfc-infrastructure-fund-direct-plan-growth-option-3315": "BSE India Infrastructure TRI TR INR",
         "hdfc-gold-etf-fund-of-fund-direct-plan-growth-5359": "Domestic Price of Gold",
     }
-    benchmark = pw_values.get("benchmark")
+    benchmark = _benchmark_from_embedded_data(html)
+    if not _is_acceptable_benchmark(benchmark):
+        benchmark = pw_values.get("benchmark")
+    if not _is_acceptable_benchmark(benchmark):
+        benchmark = None
     if not benchmark:
         benchmark = (
             _first_group(text, r"(BSE\s+India\s+Infrastructure\s+TRI\s+TR\s+INR)")
             or _first_group(text, r"(Domestic\s+Price\s+of\s+Gold)")
             or _first_group(text, r"uses the\s+([^)]+)\s+as its benchmark")
             or _first_group(text, r"Benchmark\s*[|\|]\s*(Nifty\s+[A-Za-z0-9\s]+(?:TR\s+INR|TRI))")
-            or _first_group(text, r"Benchmark\s*[|\|]\s*(S&P\s*BSE[^|\n]+?(?:Index|TRI)?)")
+            or _first_group(text, r"Benchmark\s*[|\|]\s*(S&P\s*BSE[^|\n]+?(?:Index|TRI))")
             or _first_group(text, r"Benchmark\s*[|\|]\s*(BSE[^|\n]+?(?:TRI|TR\s+INR|Index))")
             or _first_group(text, r"(Nifty\s+[A-Za-z0-9\s]+(?:TR\s+INR|TRI))")
             or _first_group(text, r"(S&P\s*BSE[^|\n]+?(?:Index|TRI))")
@@ -384,7 +549,9 @@ def extract_fund_data(
             if alt:
                 benchmark = alt.strip()
         benchmark = benchmark.strip() or None
-    if fund_id in BENCHMARK_CANONICAL and (not benchmark or benchmark.strip() == "N/A"):
+    if not _is_acceptable_benchmark(benchmark):
+        benchmark = None
+    if fund_id in BENCHMARK_CANONICAL and not benchmark:
         benchmark = BENCHMARK_CANONICAL[fund_id]
     if benchmark:
         benchmark = benchmark.strip()
@@ -393,10 +560,14 @@ def extract_fund_data(
         if "BSE India Infrastructure" in benchmark and "TRI TR INR" not in benchmark:
             benchmark = "BSE India Infrastructure TRI TR INR"
         benchmark = benchmark or None
+    benchmark = _fix_known_benchmark_typo(benchmark)
 
     # Risk
-    risk_level = _first_group(
-        text, r"(Very High Risk|High Risk|Moderate Risk|Low Risk|Very Low Risk)"
+    # Full label as the page shows it ("Moderately High risk", not "High risk"). Prefer the label
+    # that follows the Overview "Risk" heading; otherwise the first full label anywhere.
+    risk_level = (
+        _first_group(text, r"\bRisk\s*[|:]?\s*(" + _RISK_LABEL + r")\b")
+        or _first_group(text, r"\b(" + _RISK_LABEL + r")\b")
     )
     risk_level = risk_level.strip() if risk_level else None
 
@@ -456,29 +627,7 @@ def extract_fund_data(
     market_cap_split = "; ".join(parts) if parts else None
 
     # Top holdings: FAQ "The top 3 holdings of the fund are A(4.51%), B(4.19%), C(3.99%)"
-    top_holdings = _first_group(
-        text,
-        r"top \d+ holdings of the fund are\s+((?:[A-Za-z0-9 &.,]+\(\d+\.\d*%\)\s*,?\s*)+)",
-    )
-    if not top_holdings:
-        top_holdings = _first_group(text, r"holdings of the fund are\s+([^.?]+(?:\(\d+\.\d*%\)[^.?]*)+)")
-    if not top_holdings:
-        m = re.search(
-            r"top \d+ holdings[^.]*?are\s+([^?]+?)(?=\s+Who is|\s+What is|\s+How do|\?\s)",
-            text,
-            re.IGNORECASE,
-        )
-        if m:
-            top_holdings = m.group(1).strip()
-    if not top_holdings:
-        m = re.search(r"Holdings\s+(.+?)(?=See all|Portfolio Changes|$)", text, re.DOTALL | re.IGNORECASE)
-        if m:
-            top_holdings = re.sub(r"\s+", " ", m.group(1).strip())[:800]
-    if top_holdings:
-        top_holdings = re.sub(r"\s+", " ", top_holdings.strip())
-        if top_holdings.startswith("of the fund are "):
-            top_holdings = top_holdings.replace("of the fund are ", "", 1)
-        top_holdings = top_holdings[:1000]
+    top_holdings = _extract_top_holdings(text)
 
     # Build payload: include all fields; use N/A or 0 only where schema allows and value truly missing
     def _pct(s: Optional[str]) -> Optional[str]:
@@ -492,16 +641,10 @@ def extract_fund_data(
         "source_url": source_url,
         "scraped_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
-    if nav is not None:
-        payload["nav"] = nav
-    else:
-        payload["nav"] = 0.0
+    payload["nav"] = nav  # None when missing; never a placeholder 0.0
     if nav_date:
         payload["nav_date"] = nav_date
-    if daily_pct_change is not None:
-        payload["daily_pct_change"] = daily_pct_change
-    else:
-        payload["daily_pct_change"] = 0.0  # default when not present or not parsed
+    payload["daily_pct_change"] = daily_pct_change  # None (N/A) when the page does not show it
     if aum:
         payload["aum"] = aum
     else:
@@ -578,7 +721,7 @@ def scrape_fund(
     Fetch one fund page and return extracted data dict, or None on failure.
     If `page` is provided (Playwright Page), uses it for the request and for better extraction.
     """
-    html = fetch_html(url, page=page)
+    html = fetch_html(url, page=page, label=fund_id)
     if not html:
         return None
     return extract_fund_data(html, fund_id, fund_name, url, page=page)

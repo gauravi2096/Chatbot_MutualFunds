@@ -134,10 +134,10 @@ A factual, non-advisory chatbot that answers queries about mutual fund data scra
 3. HDFC Small Cap Fund — `.../hdfc-small-cap-fund-direct-growth-option-3580`
 4. HDFC Flexi Cap Fund — `.../hdfc-flexi-cap-fund-direct-plan-growth-option-3184`
 5. HDFC Value Fund — `.../hdfc-value-fund-direct-plan-growth-option-3623`
-6. HDFC Dynamic Debt Fund — `.../hdfc-dynamic-debt-plan-direct-plan-growth-option-513`
-7. HDFC Low Duration — `.../hdfc-low-duration-direct-plan-growth-option-1481`
-8. HDFC Gold ETF FoF — `.../hdfc-gold-etf-fund-of-fund-direct-plan-growth-5359`
-9. HDFC Hybrid Equity Fund — `.../hdfc-hybrid-equity-fund-direct-growth-option-4103`
+6. HDFC Dynamic Term Fund — `.../hdfc-dynamic-debt-plan-direct-plan-growth-option-513`
+7. HDFC Ultra Short to Short Term Fund — `.../hdfc-low-duration-direct-plan-growth-option-1481`
+8. HDFC Gold ETF Fund of Fund — `.../hdfc-gold-etf-fund-of-fund-direct-plan-growth-5359`
+9. HDFC Aggressive Hybrid Fund — `.../hdfc-hybrid-equity-fund-direct-growth-option-4103`
 10. HDFC Equity Savings Fund — `.../hdfc-equity-savings-fund-direct-plan-growth-option-4569`
 
 Base URL: `https://www.indmoney.com/mutual-funds/...`
