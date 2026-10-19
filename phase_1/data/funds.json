@@ -1,5 +1,5 @@
 {
-  "last_updated": "Oct 18, 2026 02:31 pm",
+  "last_updated": "Oct 19, 2026 03:40 pm",
   "funds": [
     {
       "fund_id": "hdfc-infrastructure-fund-direct-plan-growth-option-3315",
@@ -24,7 +24,7 @@
       "top_holdings": "N/A",
       "risk_level": "N/A",
       "benchmark": "BSE India Infrastructure TRI TR INR",
-      "scraped_at": "2026-10-18T09:01:11Z"
+      "scraped_at": "2026-10-19T10:10:00Z"
     },
     {
       "fund_id": "hdfc-mid-cap-fund-direct-plan-growth-option-3097",
@@ -49,7 +49,7 @@
       "top_holdings": "The Federal Bank Ltd(3.98%), AU Small Finance Bank Ltd(3.94%), Max Financial Services Ltd(3.52%)",
       "risk_level": "Very High Risk",
       "benchmark": "Nifty Midcap 150 TR INR",
-      "scraped_at": "2026-10-18T09:01:14Z"
+      "scraped_at": "2026-10-19T10:10:04Z"
     },
     {
       "fund_id": "hdfc-small-cap-fund-direct-growth-option-3580",
@@ -74,7 +74,7 @@
       "top_holdings": "Firstsource Solutions Ltd(3.68%), Aster DM Quality Care Ltd Ordinary Shares(3.37%), Gabriel India Ltd(3.09%)",
       "risk_level": "Very High Risk",
       "benchmark": "S&P BSE",
-      "scraped_at": "2026-10-18T09:01:16Z"
+      "scraped_at": "2026-10-19T10:10:07Z"
     },
     {
       "fund_id": "hdfc-flexi-cap-fund-direct-plan-growth-option-3184",
@@ -99,7 +99,7 @@
       "top_holdings": "ICICI Bank Ltd(8.8%), Axis Bank Ltd(6.11%), HDFC Bank Ltd(6.03%)",
       "risk_level": "Very High Risk",
       "benchmark": "Nifty 500 TR INR",
-      "scraped_at": "2026-10-18T09:01:18Z"
+      "scraped_at": "2026-10-19T10:10:09Z"
     },
     {
       "fund_id": "hdfc-value-fund-direct-plan-growth-option-3623",
@@ -124,7 +124,7 @@
       "top_holdings": "ICICI Bank Ltd(6.17%), HDFC Bank Ltd(4.56%), Axis Bank Ltd(3.2%)",
       "risk_level": "Very High Risk",
       "benchmark": "Nifty 500 TR INR",
-      "scraped_at": "2026-10-18T09:01:20Z"
+      "scraped_at": "2026-10-19T10:10:11Z"
     },
     {
       "fund_id": "hdfc-dynamic-debt-plan-direct-plan-growth-option-513",
@@ -149,7 +149,7 @@
       "top_holdings": "HDFC Dynamic Term Fund has allocated its funds majorly in Government, Financial Services, Industrial, Cash Equivalent, Utilities, Corporate. Its top holdings are 7.34% Govt Stock 2064, Rec Limited, National Bank For Agriculture And Rural Development, Small Industries Development Bank Of India, 6.9% Govt Stock 2065 Taxation As it is a dynamic bond mutual fund the taxation is as follows: If the fund is debt oriented i.e. asset allocation of more than 65% in debt instruments: Invested before 1 April 2023 and held for less than 24 months, STCG will be taxed at your income slab rate. Invested before 1 April 2023 and held for more than 24 months, LTCG will be taxed at 12.5%. Invested after 1 April 2023, capital gains will be taxed at your income slab rate. Dividends will always be taxed at slab",
       "risk_level": "High risk",
       "benchmark": "Nifty Composite Debt TR INR",
-      "scraped_at": "2026-10-18T09:01:22Z"
+      "scraped_at": "2026-10-19T10:10:14Z"
     },
     {
       "fund_id": "hdfc-low-duration-direct-plan-growth-option-1481",
@@ -174,7 +174,7 @@
       "top_holdings": "Small Industries Development Bank Of India(5.55%),",
       "risk_level": "Moderate Risk",
       "benchmark": "S&P BSE",
-      "scraped_at": "2026-10-18T09:01:24Z"
+      "scraped_at": "2026-10-19T10:10:16Z"
     },
     {
       "fund_id": "hdfc-gold-etf-fund-of-fund-direct-plan-growth-5359",
@@ -199,7 +199,7 @@
       "top_holdings": "HDFC Gold ETF(100.12%)",
       "risk_level": "High Risk",
       "benchmark": "S&P BSE",
-      "scraped_at": "2026-10-18T09:01:25Z"
+      "scraped_at": "2026-10-19T10:10:18Z"
     },
     {
       "fund_id": "hdfc-hybrid-equity-fund-direct-growth-option-4103",
@@ -224,7 +224,7 @@
       "top_holdings": "HDFC Bank Ltd(7.01%), ICICI Bank Ltd(6.87%), Reliance Industries Ltd(4.15%)",
       "risk_level": "Very High Risk",
       "benchmark": "Nifty 50 TR INR",
-      "scraped_at": "2026-10-18T09:01:28Z"
+      "scraped_at": "2026-10-19T10:10:21Z"
     },
     {
       "fund_id": "hdfc-equity-savings-fund-direct-plan-growth-option-4569",
@@ -249,7 +249,7 @@
       "top_holdings": "HDFC Bank Ltd(6.96%), Reliance Industries Ltd(5.23%), NTPC Ltd(3.55%)",
       "risk_level": "High risk",
       "benchmark": "S&P BSE",
-      "scraped_at": "2026-10-18T09:01:30Z"
+      "scraped_at": "2026-10-19T10:10:23Z"
     }
   ]
 }
