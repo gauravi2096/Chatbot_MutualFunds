@@ -137,10 +137,17 @@ def _mentions_specific_field(query: str) -> bool:
 # pattern is narrow (fixed digit counts, fixed group sizes) so ordinary fund numbers such as
 # "NAV 245.67", "SIP of 10,000", "1,23,456 crore", "3097" or "18 Oct 2026" never match.
 _PAN_FINAL_LETTER = r"(?:[B-HJ-Z]|[AI](?!\s+\w))"  # a lone "a"/"i" followed by a word is prose ("5000 a month")
+_PAN_LETTERS_SPELLED = r"[A-Z](?:[\s-]+[A-Z]){4}"
+_PAN_DIGITS_SPELLED = r"[0-9](?:[\s-]+[0-9]){3}"
 _PAN_PATTERNS = (
     re.compile(r"\b[A-Z]{5}[0-9]{4}[A-Z]\b", re.IGNORECASE),  # ABCDE1234F
     re.compile(r"\b[A-Z]{5}[\s-]+[0-9]{4}(?:[\s-]+" + _PAN_FINAL_LETTER + r"|[A-Z])\b", re.IGNORECASE),  # ABCDE 1234 F, ABCDE-1234F
     re.compile(r"\b[A-Z]{5}[0-9]{4}[\s-]+" + _PAN_FINAL_LETTER + r"\b", re.IGNORECASE),  # ABCDE1234 F
+    # One character at a time: "A B C D E 1 2 3 4 F", "A-B-C-D-E 1-2-3-4 F". Same shape (5 letters, 4 digits, 1 letter);
+    # at least one of the two groups is spelled out, so the forms above keep their own guards.
+    re.compile(r"(?<![A-Za-z0-9])" + _PAN_LETTERS_SPELLED + r"[\s-]*(?:" + _PAN_DIGITS_SPELLED + r"|[0-9]{4})[\s-]*"
+               + _PAN_FINAL_LETTER + r"(?![A-Za-z0-9])", re.IGNORECASE),
+    re.compile(r"(?<![A-Za-z0-9])[A-Z]{5}[\s-]*" + _PAN_DIGITS_SPELLED + r"[\s-]*" + _PAN_FINAL_LETTER + r"(?![A-Za-z0-9])", re.IGNORECASE),
 )
 # Aadhaar: 12 digits in groups of 4, optionally separated by a space or hyphen.
 _AADHAAR_PATTERN = re.compile(r"\b[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}\b")
@@ -289,6 +296,9 @@ _DECISION_PATTERNS = _compile(
     r"\bwhat\s+to\s+do\s+with\s+(?:my|the|these|this|our)\b",
     r"\btell\s+me\s+what\s+to\s+(?:do|buy|pick|choose|invest|sell|hold)\b",
     r"\bwhere\s+(?:\w+\s+){0,3}?should\s+(?:i|we)\b",
+    r"\bwhere\s+(?:can|could|do|to|would|might|shall)\s+(?:(?:i|we)\s+)?(?:[\w']+\s+){0,2}?(?:put|park|invest|deploy|keep|stash|place|"
+    r"use|save|lock)\s+(?:(?:my|our|the|this|some|these|that|more|all)\s+)?(?:[\w']+\s+){0,2}?"
+    r"(?:money|savings|cash|corpus|bonus|amount|capital|salary|lakhs?|crores?)\b",
     r"\bhow\s+(?:much|many)\b.{0,60}?\b(?:should|shall)\s+(?:i|we)\b",
     r"\b(?:smarter|wiser|better|safer|advisable|sensible|preferable)\s+to\s+" + _COMPARATIVE_VERB,
 )
@@ -298,7 +308,7 @@ _PREDICTION_FALL = r"fall(?!\s+(?:under|into|within|in\s+the|on|short))"
 _PREDICTION_VERB = (
     r"(?:go(?:es)?\s+up|go(?:es)?\s+down|rise|rally|" + _PREDICTION_FALL + r"|drop|crash|increase|decrease|"
     r"grow|appreciate|beat|outperform|outpace|underperform|double|triple|recover|bounce|perform|"
-    r"do\s+(?:well|better)|give\s+(?:\w+\s+){0,2}?(?:returns?|profits?|gains?))\b"
+    r"do\s+(?:well|better)|give\s+(?:\w+\s+){0,4}?(?:returns?|profits?|gains?))\b"
 )
 _PREDICTION_PATTERNS = _compile(
     r"\bwill\b(?:\W+\w+){0,8}?\W+" + _PREDICTION_VERB,
@@ -309,6 +319,13 @@ _PREDICTION_PATTERNS = _compile(
     r"(?:\w+\s+)?(?:expect|anticipate|get|earn|make)\b",
     r"\b(?:future|forecast\w*|projected|projection)\s+(?:returns?|growth|performance|nav|value|price)\b",
     r"\bgrowth\s+potential\b|\bupside\b",
+    # "which fund will give/earn/deliver ... returns" (a forecast), "which fund will grow/beat/outperform", "which fund gives me ..."
+    r"\bwhich\s+(?:[\w']+\s+){0,3}?(?:will|would|might|going\s+to)\s+(?:[\w']+\s+){0,2}?(?:give|yield|earn|deliver|generate|fetch|pay)\b"
+    r"(?:\W+\w+){0,6}?\W+(?:returns?|profits?|gains?|income|money|growth|yield|payouts?)\b",
+    r"\bwhich\s+(?:[\w']+\s+){0,3}?(?:will|would|might|going\s+to)\s+(?:[\w']+\s+){0,2}?(?:grow|rise|double|beat|outperform|outpace|"
+    r"do\s+(?:well|better|best)|perform)\b",
+    r"\bwhich\s+(?:[\w']+\s+){0,3}?(?:gives?|yields?|earns?|delivers?|pays?|offers?|generates?|fetch(?:es)?|makes?)\s+(?:me|us)\b",
+    r"\bwhat\s+(?:will|would|can|could)\s+(?:[\w']+\s+){0,3}?(?:give|earn|yield|deliver|fetch|make)\s+(?:me|us)\b",
 )
 
 # the user describes their own situation and asks what to do
@@ -348,6 +365,8 @@ _OPINION_PATTERNS = _compile(
     r"(?:advice|guidance|suggestions?|recommendations?|tips)\b",
     r"\b(?:advice|guidance)\s+(?:on|about|for|regarding)\s+(?:where|which|what|how|whether|when|"
     r"investing|choosing|buying|selling)\b",
+    r"\b(?:deserves?|worth|merits?)\s+(?:of\s+)?(?:my|our)\s+(?:[\w']+\s+){0,2}?(?:money|savings|investment|rupees|capital|"
+    r"cash|funds?|corpus|trust|attention|time)\b",
 )
 
 # timing
@@ -368,6 +387,14 @@ _SUITABILITY_PATTERNS = _compile(
     r"\bfits?\s+(?:me|my|our|your)\b|\bfit\s+for\s+(?:me|my)\b",
     r"\bsafe\s+(?:to\s+(?:put|invest|park|keep|hold|buy|deposit)|place|bet|option|investment|for\s+"
     + _INVESTOR + r")\b",
+    # "the safest/best/right fund to put my parents' money in"
+    r"\b(?:safest|safer|best|better|right|ideal|suitable|perfect|top|most\s+(?:suitable|stable|secure|reliable))\s+(?:[\w']+\s+){0,3}?"
+    r"(?:funds?|schemes?|options?|investments?|places?|choices?|picks?|ones?|avenues?)\s+(?:[\w']+\s+){0,2}?(?:to|for)\s+"
+    r"(?:[\w']+\s+){0,2}?(?:put|park|invest|deposit|keep|save|allocate|place|stash|use|lock|grow|add)\b",
+    # "which fund is safest/best for my parents' money / my family"
+    r"\b(?:which|what)\s+(?:[\w']+\s+){0,3}?(?:is|are|would\s+be)\s+(?:the\s+)?(?:safest|safer|best|most\s+(?:suitable|stable|secure)|ideal|"
+    r"right)\s+(?:[\w']+\s+){0,3}?for\s+(?:my|our)\s+(?:[\w']+\s+){0,2}?(?:money|savings|parents?|family|mother|father|wife|husband|"
+    r"kids?|children|retirement|corpus|funds?)\b",
 )
 
 # asking Fin to recommend, or to choose between funds
@@ -387,6 +414,42 @@ _RECOMMENDATION_PATTERNS = _compile(
     r"fund|scheme|idea|call|performer|one|candidate|fit)s?\b",
     r"\b(?:best|top)[\s-]performing\b",
     r"\b(?:calculate|compute)\s+(?:my\s+|the\s+)?returns\b",
+    r"\bwhich\s+(?:[\w']+\s+){0,3}?(?:beats?|outperforms?|outpaces?|tops?|wins|is\s+(?:the\s+)?(?:winner|leader))\s+(?:all\s+)?"
+    r"(?:the\s+)?(?:others?|rest|them|all|everyone|everything|these|those|each\s+other)\b",
+    r"\bwhich\s+(?:[\w']+\s+){0,3}?(?:is|are)\s+(?:the\s+)?(?:best|top|number\s+one|winner)\s+(?:of|among|amongst|out\s+of)\s+"
+    r"(?:all|them|these|those|the\s+\w+)\b",
+)
+
+# splitting money across funds
+_ALLOCATION_PATTERNS = _compile(
+    r"\bhow\s+(?:should|shall|can|could|would|do|to)\s+(?:(?:i|we)\s+)?(?:[\w']+\s+){0,2}?(?:split|divide|allocate|distribute|spread|"
+    r"diversify|apportion)\b[^?.!]{0,80}?\b(?:money|savings?|salary|bonus|investment|amount|corpus|funds?|lakhs?|crores?|rs\.?|rupees?|"
+    r"\u20b9|\d[\d,]*)",
+    r"\bwhat\s+(?:[\w']+\s+){0,2}?(?:allocation|split|ratio|mix|proportion|weightage|percentage)\s+(?:should|shall|do|would)\s+(?:i|we)\b",
+    r"\b(?:suggest|advise|tell\s+me|help\s+me|recommend)\b[^?.!]{0,40}\b(?:split|allocation|allocate|distribute|divide|spread)\b"
+    r"[^?.!]{0,40}\b(?:money|savings?|investment|amount|funds?)\b",
+)
+
+# Roman-Hindi (Hinglish) advice: "konsa fund lena chahiye", "invest karun ya nahi", "paisa lagana sahi rahega", "SIP shuru karni chahiye".
+# Devanagari script is not covered.
+_HG_WHICH = r"(?:kon\s?sa|kaun\s?sa|kon\s?si|kaun\s?si|konse|kaunse|konsi|kaunsi)"
+_HG_VERDICT = r"(?:chahiye|chahie|sahi|theek|thik|behtar|better|best|accha|achha|acha|rahega|rahegi|hoga|hogi|ya\s+nahi|ya\s+nahin|ya\s+nhi)"
+_HINGLISH_PATTERNS = _compile(
+    r"\b" + _HG_WHICH + r"\b(?:\W+\w+){0,5}?\W+(?:behtar|best|better|accha|achha|acha|sahi|safe|lena|lun|loon|chahiye|chahie|kharidun|"
+    r"khareedun|lagaun|lagau|lagana)\b",
+    r"\b(?:kis|" + _HG_WHICH + r")\s+(?:fund|scheme|option|plan|company|stock)s?\s+(?:mein|me|main|men)\s+(?:\w+\s+){0,2}?"
+    r"(?:paisa|paise|invest|nivesh|lagau\w*|lagana|lagayein|daal\w*|dal\w*)",
+    r"\binvest\s+(?:karu|karun|karoon|krun|kru|karein|karna|karni)\b(?:\W+\w+){0,4}?\W+" + _HG_VERDICT + r"\b",
+    r"\b(?:paisa|paise|rupaye|rupay|savings?)\s+(?:\w+\s+){0,2}?(?:lagana|lagaun|lagau|lagaoon|lagayein|lagayen|lagaye|dalna|daalna|"
+    r"daalun|dalun)\b(?:\W+\w+){0,4}?\W+" + _HG_VERDICT + r"\b",
+    r"\b(?:sip|investment|nivesh)\s+(?:\w+\s+){0,2}?(?:shuru|start|chalu|suru)\s+(?:karni|karna|karun|karu|karoon|karein|kar\s+du|krun|kru)"
+    r"\b(?:\W+\w+){0,3}?\W+" + _HG_VERDICT + r"\b",
+    r"\b(?:fund|scheme|sip|stock)s?\s+(?:\w+\s+){0,2}?(?:lena|lun|loon|lu|khareedna|kharidna|kharidun|khareedun)\s+" + _HG_VERDICT + r"\b",
+    r"\b(?:best|achha|accha|acha|behtar|sabse\s+(?:achha|accha|acha|behtar|safe|best))\s+(?:\w+\s+){0,2}?(?:fund|scheme|option|sip)\b"
+    r"(?:\W+\w+){0,3}?\W+(?:batao|bataiye|bataye|btao|suggest|chahiye|dikhao)\b",
+    # "sahi rahega / behtar hai" about putting money in: needs an investing word as well
+    r"^(?=.*\b(?:invest|lagana|lagaun|lagao|lagau|khareed\w*|kharid\w*|bechna|nivesh|paisa|paise|sip)\b)"
+    r"(?=.*\b(?:sahi|theek|behtar|achha|accha|acha)\s+(?:rahega|rahegi|hoga|hogi|hai|rahenge)\b)",
 )
 
 
@@ -411,6 +474,8 @@ def is_likely_advisory(query: str) -> bool:
             _OPINION_PATTERNS,
             _TIMING_PATTERNS,
             _SUITABILITY_PATTERNS,
+            _ALLOCATION_PATTERNS,
+            _HINGLISH_PATTERNS,
         )
     )
 
