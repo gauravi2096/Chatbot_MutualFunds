@@ -22,10 +22,10 @@ PHASE_1_SOURCES = [
     ("hdfc-small-cap-fund-direct-growth-option-3580", "HDFC Small Cap Fund"),
     ("hdfc-flexi-cap-fund-direct-plan-growth-option-3184", "HDFC Flexi Cap Fund"),
     ("hdfc-value-fund-direct-plan-growth-option-3623", "HDFC Value Fund"),
-    ("hdfc-dynamic-debt-plan-direct-plan-growth-option-513", "HDFC Dynamic Debt Fund"),
-    ("hdfc-low-duration-direct-plan-growth-option-1481", "HDFC Low Duration"),
-    ("hdfc-gold-etf-fund-of-fund-direct-plan-growth-5359", "HDFC Gold ETF FoF"),
-    ("hdfc-hybrid-equity-fund-direct-growth-option-4103", "HDFC Hybrid Equity Fund"),
+    ("hdfc-dynamic-debt-plan-direct-plan-growth-option-513", "HDFC Dynamic Term Fund"),
+    ("hdfc-low-duration-direct-plan-growth-option-1481", "HDFC Ultra Short to Short Term Fund"),
+    ("hdfc-gold-etf-fund-of-fund-direct-plan-growth-5359", "HDFC Gold ETF Fund of Fund"),
+    ("hdfc-hybrid-equity-fund-direct-growth-option-4103", "HDFC Aggressive Hybrid Fund"),
     ("hdfc-equity-savings-fund-direct-plan-growth-option-4569", "HDFC Equity Savings Fund"),
 ]
 

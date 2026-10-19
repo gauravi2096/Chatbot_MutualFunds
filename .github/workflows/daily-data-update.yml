@@ -44,3 +44,16 @@ jobs:
           git add phase_1/data/funds.json phase_0/data/source_registry.json phase_1/data/chroma
           git diff --staged --quiet || git commit -m "chore(data): daily update funds, registry and vector store [automated]"
           git push
+
+      # Runs after the commit above, so good data still lands. Turns the run red (and sends the
+      # GitHub failure email) when any fund kept its previous record or was left out.
+      - name: Fail if any fund did not refresh
+        run: |
+          python - <<'PY'
+          import json, sys
+          status = json.load(open("phase_1/data/ingestion_status.json"))
+          bad = [f for f in status["funds"] if f["status"] in ("kept_previous", "dropped")]
+          for f in bad:
+              print(f"{f['status']}: {f['fund_id']} ({f['reason']})")
+          sys.exit(1 if bad else 0)
+          PY

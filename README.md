@@ -107,10 +107,10 @@ All 10 funds are HDFC schemes on INDmoney:
 3. HDFC Small Cap Fund
 4. HDFC Flexi Cap Fund
 5. HDFC Value Fund
-6. HDFC Dynamic Debt Fund
-7. HDFC Low Duration
-8. HDFC Gold ETF FoF
-9. HDFC Hybrid Equity Fund
+6. HDFC Dynamic Term Fund
+7. HDFC Ultra Short to Short Term Fund
+8. HDFC Gold ETF Fund of Fund
+9. HDFC Aggressive Hybrid Fund
 10. HDFC Equity Savings Fund
 
 ### Project structure
