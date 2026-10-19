@@ -25,10 +25,12 @@ NUMERIC_FIELDS = {
     "nav", "daily_pct_change", "aum", "expense_ratio", "exit_load", "min_investment_lumpsum",
     "min_investment_sip", "cagr_1y", "cagr_3y", "cagr_5y", "since_inception", "equity_pct", "debt_cash_pct",
 }
-# A number with an optional sign (a hyphen, non-breaking hyphen U+2011, en dash or minus sign U+2212). A hyphen glued to the previous
-# word ("3-5 years") is a range, not a minus.
-_MINUS = "-\u2010\u2011\u2012\u2013\u2212\ufe63\uff0d"  # hyphen-minus, other hyphens (U+2011 non-breaking), en dash, minus sign
-_NUMBER = re.compile(r"(?<![\w.])([" + _MINUS + r"]?)\s?(\d[\d,]*(?:\.\d+)?)")
+# A number with an optional sign. A hyphen-minus, other hyphen (U+2010 to U+2012, U+FE63, U+FF0D) or minus sign (U+2212) counts
+# as a sign when it is right before the digits, with at most one space. An en dash (U+2013) is also used as a separator
+# ("Rec Limited – 5.34%"), so it counts as a minus only when a digit follows it immediately ("–0.2%"). A dash glued to
+# the previous word ("3-5 years") is a range, not a minus.
+_MINUS = "-\u2010\u2011\u2012\u2212\ufe63\uff0d"
+_NUMBER = re.compile(r"(?<![\w.])((?:[" + _MINUS + r"]\s?)|(?:\u2013(?=\d)))?(\d[\d,]*(?:\.\d+)?)")
 
 
 def numbers_in(text: str) -> List[float]:
