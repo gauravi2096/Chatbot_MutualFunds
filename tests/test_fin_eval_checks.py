@@ -240,6 +240,31 @@ def test_fin_eval_offline_report_splits_original_new_and_combined():
     assert "Fixed-field regression, 7 new questions (#71-#77)" in report and "Combined:" in report
 
 
+def test_an_en_dash_separator_is_not_a_minus_sign():
+    # the bug: "Govt Stock 2064 \u2013 14.7%" was read as 2064 and -14.7, so a correct holdings answer failed
+    assert numbers_in("Rec Limited \u2013 5.34%") == [5.34]
+    assert numbers_in("Govt Stock 2064 \u2013 14.7%") == [2064.0, 14.7]
+    assert numbers_in("1. Small Industries Development Bank of India \u2013 5.55%  2. 6.17% Govt Stock 2028 \u2013 4.72%") == [1.0, 5.55, 2.0, 6.17, 2028.0, 4.72]
+    assert numbers_in("NAV \u2013 245.67") == [245.67]
+
+
+def test_signs_attached_to_the_digits_still_count():
+    assert numbers_in("\u20130.2%") == [-0.2]            # en dash directly before a digit
+    assert numbers_in("-14.7%") == [-14.7]                # hyphen-minus
+    assert numbers_in("\u221214.7%") == [-14.7]          # minus sign U+2212
+    assert numbers_in("\u20113.4\u202f%") == [-3.4]      # non-breaking hyphen
+    assert numbers_in("5\u20137 years") == [5.0, 7.0]    # an en-dash range is not a minus
+    assert numeric_match("Rec Limited \u2013 5.34%", 5.34) and not numeric_match("Rec Limited \u2013 5.34%", -5.34)
+    assert numeric_match("\u20130.2%", -0.2) and numeric_match("-14.7%", -14.7)
+
+
+def test_holdings_answer_with_en_dash_separators_passes():
+    answer = ("The top three holdings are:\n1. Small Industries Development Bank of India \u2013 5.55%  \n"
+              "2. 6.17% Govt Stock 2028 \u2013 4.72%  \n3. Jubilant Beverages Limited \u2013 4.05%")
+    items = parse_holdings("Small Industries Development Bank Of India(5.55%), 6.17% Govt Stock 2028(4.72%), Jubilant Beverages Limited(4.05%)")
+    assert holdings_ok(answer, items)
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     for name, fn in tests:
