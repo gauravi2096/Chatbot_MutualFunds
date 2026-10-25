@@ -1,5 +1,5 @@
 {
-  "last_updated": "Oct 24, 2026 02:32 pm",
+  "last_updated": "Oct 25, 2026 02:49 pm",
   "funds": [
     {
       "fund_id": "hdfc-infrastructure-fund-direct-plan-growth-option-3315",
@@ -14,9 +14,9 @@
       "min_investment_sip": "100",
       "exit_load": "1%",
       "elss_lock_in": "No Lock-in",
-      "cagr_1y": "-10.12%",
-      "cagr_3y": "10.51%",
-      "cagr_5y": "16.43%",
+      "cagr_1y": "-11.64%",
+      "cagr_3y": "11.06%",
+      "cagr_5y": "16.05%",
       "since_inception": "11.05%",
       "equity_pct": "98.8%",
       "debt_cash_pct": "1.2%",
@@ -24,7 +24,7 @@
       "top_holdings": "Larsen & Toubro Ltd(7.03%), Kalpataru Projects International Ltd(4.4%), InterGlobe Aviation Ltd(4.35%)",
       "risk_level": "Very High Risk",
       "benchmark": "BSE India Infrastructure TRI TR INR",
-      "scraped_at": "2026-10-24T09:02:18Z"
+      "scraped_at": "2026-10-25T09:19:17Z"
     },
     {
       "fund_id": "hdfc-mid-cap-fund-direct-plan-growth-option-3097",
@@ -32,24 +32,24 @@
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-mid-cap-fund-direct-plan-growth-option-3097",
       "nav": 213.42,
       "nav_date": "2026-10-23",
-      "daily_pct_change": -0.6,
+      "daily_pct_change": -1.4,
       "aum": "101856 Cr",
       "expense_ratio": "0.76%",
       "min_investment_lumpsum": "100",
       "min_investment_sip": "100",
       "exit_load": "1%",
       "elss_lock_in": "No Lock-in",
-      "cagr_1y": "-1.62%",
-      "cagr_3y": "14.98%",
-      "cagr_5y": "16.84%",
-      "since_inception": "19.37%",
+      "cagr_1y": "-3.17%",
+      "cagr_3y": "15.27%",
+      "cagr_5y": "16.51%",
+      "since_inception": "19.24%",
       "equity_pct": "91.7%",
       "debt_cash_pct": "8.3%",
       "market_cap_split": "Large cap 10.4%; Mid cap 64.1%; Small cap 17.2%",
       "top_holdings": "The Federal Bank Ltd(3.98%), AU Small Finance Bank Ltd(3.94%), Max Financial Services Ltd(3.52%)",
       "risk_level": "Very High Risk",
       "benchmark": "Nifty Midcap 150 TR INR",
-      "scraped_at": "2026-10-24T09:02:19Z"
+      "scraped_at": "2026-10-25T09:19:18Z"
     },
     {
       "fund_id": "hdfc-small-cap-fund-direct-growth-option-3580",
@@ -74,7 +74,7 @@
       "top_holdings": "Firstsource Solutions Ltd(3.68%), Aster DM Quality Care Ltd Ordinary Shares(3.37%), Gabriel India Ltd(3.09%)",
       "risk_level": "Very High Risk",
       "benchmark": "BSE 250 SmallCap TR INR",
-      "scraped_at": "2026-10-24T09:02:20Z"
+      "scraped_at": "2026-10-25T09:19:19Z"
     },
     {
       "fund_id": "hdfc-flexi-cap-fund-direct-plan-growth-option-3184",
@@ -82,24 +82,24 @@
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-flexi-cap-fund-direct-plan-growth-option-3184",
       "nav": 2121.91,
       "nav_date": "2026-10-23",
-      "daily_pct_change": -0.5,
+      "daily_pct_change": -0.6,
       "aum": "108547 Cr",
       "expense_ratio": "0.77%",
       "min_investment_lumpsum": "100",
       "min_investment_sip": "100",
       "exit_load": "1%",
       "elss_lock_in": "No Lock-in",
-      "cagr_1y": "-6%",
-      "cagr_3y": "14.09%",
-      "cagr_5y": "14.43%",
-      "since_inception": "15.36%",
+      "cagr_1y": "-6.76%",
+      "cagr_3y": "14.39%",
+      "cagr_5y": "14.3%",
+      "since_inception": "15.31%",
       "equity_pct": "97.2%",
       "debt_cash_pct": "2.8%",
       "market_cap_split": "Large cap 69.9%; Mid cap 15.1%; Small cap 11.5%",
       "top_holdings": "ICICI Bank Ltd(8.8%), Axis Bank Ltd(6.11%), HDFC Bank Ltd(6.03%)",
       "risk_level": "Very High Risk",
       "benchmark": "Nifty 500 TR INR",
-      "scraped_at": "2026-10-24T09:02:21Z"
+      "scraped_at": "2026-10-25T09:19:20Z"
     },
     {
       "fund_id": "hdfc-value-fund-direct-plan-growth-option-3623",
@@ -124,7 +124,7 @@
       "top_holdings": "ICICI Bank Ltd(6.17%), HDFC Bank Ltd(4.56%), Axis Bank Ltd(3.2%)",
       "risk_level": "Very High Risk",
       "benchmark": "Nifty 500 TR INR",
-      "scraped_at": "2026-10-24T09:02:22Z"
+      "scraped_at": "2026-10-25T09:19:21Z"
     },
     {
       "fund_id": "hdfc-dynamic-debt-plan-direct-plan-growth-option-513",
@@ -132,7 +132,7 @@
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-dynamic-debt-plan-direct-plan-growth-option-513",
       "nav": 102.3,
       "nav_date": "2026-10-23",
-      "daily_pct_change": -0.2,
+      "daily_pct_change": -0.1,
       "aum": "480 Cr",
       "expense_ratio": "0.75%",
       "min_investment_lumpsum": "100",
@@ -140,16 +140,16 @@
       "exit_load": "0%",
       "elss_lock_in": "No Lock-in",
       "cagr_1y": "2.42%",
-      "cagr_3y": "6.45%",
-      "cagr_5y": "5.68%",
-      "since_inception": "7.35%",
+      "cagr_3y": "6.4%",
+      "cagr_5y": "5.65%",
+      "since_inception": "7.34%",
       "equity_pct": "8.3%",
       "debt_cash_pct": "89.4%",
       "market_cap_split": "N/A",
       "top_holdings": "7.34% Govt Stock 2064(6.79%), Rec Limited(5.38%), Indian Railway Finance Corporation Limited(5.25%)",
       "risk_level": "Moderately High risk",
       "benchmark": "Nifty Composite Debt TR INR",
-      "scraped_at": "2026-10-24T09:02:23Z"
+      "scraped_at": "2026-10-25T09:19:22Z"
     },
     {
       "fund_id": "hdfc-low-duration-direct-plan-growth-option-1481",
@@ -174,7 +174,7 @@
       "top_holdings": "Small Industries Development Bank Of India(5.72%), 6.17% Govt Stock 2028(5.01%), Jubilant Beverages Limited(4.31%)",
       "risk_level": "Moderate Risk",
       "benchmark": "NIFTY Low Duration Debt Index TR INR",
-      "scraped_at": "2026-10-24T09:02:24Z"
+      "scraped_at": "2026-10-25T09:19:23Z"
     },
     {
       "fund_id": "hdfc-gold-etf-fund-of-fund-direct-plan-growth-5359",
@@ -182,24 +182,24 @@
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-gold-etf-fund-of-fund-direct-plan-growth-5359",
       "nav": 43.69,
       "nav_date": "2026-10-23",
-      "daily_pct_change": -0.7,
+      "daily_pct_change": -1.3,
       "aum": "12013 Cr",
       "expense_ratio": "0.2%",
       "min_investment_lumpsum": "100",
       "min_investment_sip": "100",
       "exit_load": "1%",
       "elss_lock_in": "No Lock-in",
-      "cagr_1y": "11.12%",
-      "cagr_3y": "31.52%",
-      "cagr_5y": "23.19%",
-      "since_inception": "10.57%",
+      "cagr_1y": "13.55%",
+      "cagr_3y": "30.89%",
+      "cagr_5y": "22.88%",
+      "since_inception": "10.46%",
       "equity_pct": "N/A",
       "debt_cash_pct": "1.3%",
       "market_cap_split": "N/A",
       "top_holdings": "HDFC Gold ETF(100.12%)",
       "risk_level": "High Risk",
       "benchmark": "Domestic Price of Gold",
-      "scraped_at": "2026-10-24T09:02:25Z"
+      "scraped_at": "2026-10-25T09:19:25Z"
     },
     {
       "fund_id": "hdfc-hybrid-equity-fund-direct-growth-option-4103",
@@ -224,7 +224,7 @@
       "top_holdings": "HDFC Bank Ltd(7.01%), ICICI Bank Ltd(6.87%), Reliance Industries Ltd(4.15%)",
       "risk_level": "Very High Risk",
       "benchmark": "Nifty 50 TR INR",
-      "scraped_at": "2026-10-24T09:02:26Z"
+      "scraped_at": "2026-10-25T09:19:26Z"
     },
     {
       "fund_id": "hdfc-equity-savings-fund-direct-plan-growth-option-4569",
@@ -249,7 +249,7 @@
       "top_holdings": "HDFC Bank Ltd(6.96%), Reliance Industries Ltd(5.23%), NTPC Ltd(3.55%)",
       "risk_level": "Moderately High risk",
       "benchmark": "NIFTY Equity Savings TR INR",
-      "scraped_at": "2026-10-24T09:02:27Z"
+      "scraped_at": "2026-10-25T09:19:27Z"
     }
   ]
 }
